@@ -405,7 +405,7 @@ function wcc_get_entries_html( $post_id, $override_hide_index = null ) {
 			<?php foreach ( $entries as $number => $entry ) : ?>
 				<details class="wcc-weekly-entry" id="entrega-<?php echo esc_attr( $entry['id'] ); ?>"<?php echo 0 === $number ? ' open' : ''; ?>>
 					<summary class="wcc-weekly-entry__summary">
-						<p class="wcc-weekly-entry__label"><?php echo esc_html( sprintf( __( 'Entrega %d', 'weekly-content-concatenator' ), $number + 1 ) ); ?></p>
+						<p class="wcc-weekly-entry__label"><?php echo esc_html( (string) ( $number + 1 ) ); ?></p>
 						<span class="wcc-weekly-entry__summary-title"><?php echo esc_html( $entry['title'] ? $entry['title'] : sprintf( __( 'Entrega %d', 'weekly-content-concatenator' ), $number + 1 ) ); ?></span>
 						<time class="wcc-weekly-entry__summary-date" datetime="<?php echo esc_attr( $entry['date'] ); ?>"><?php echo esc_html( wp_date( get_option( 'date_format' ), strtotime( $entry['date'] ) ) ); ?></time>
 					</summary>
@@ -545,4 +545,3 @@ function wcc_ajax_save_single_entry() {
 	);
 }
 add_action( 'wp_ajax_wcc_save_single_entry', 'wcc_ajax_save_single_entry' );
-
