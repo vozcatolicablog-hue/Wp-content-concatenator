@@ -4,7 +4,7 @@ Tags: series, cursos, contenido semanal, publicaciones, shortcodes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.2.1
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,7 +104,7 @@ Si. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del 
 
 == Changelog ==
 
-= 1.2.1 =
+= 1.3.0 =
 
 * Evita duplicar entregas cuando el post tiene visualizacion automatica y tambien usa el shortcode.
 * Mejora la carga temprana de assets cuando el shortcode se usa en contenido singular.
@@ -112,6 +112,10 @@ Si. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del 
 * El guardado individual tambien sincroniza las opciones generales del panel.
 * Agrega aviso visual cuando una entrega guardada por AJAX actualiza la fecha del post.
 * Agrega documentacion tecnica y configuracion basica de lint.
+
+= 1.2.1 =
+
+* Ajustes menores de mantenimiento.
 
 = 1.2.0 =
 
@@ -138,6 +142,6 @@ Si. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del 
 
 == Upgrade Notice ==
 
-= 1.2.1 =
+= 1.3.0 =
 
 Actualiza para evitar duplicados con shortcode, mejorar la carga de assets y sincronizar opciones durante el guardado individual.
