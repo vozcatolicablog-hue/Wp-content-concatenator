@@ -1,0 +1,194 @@
+/* ==========================================
+   WCC Frontend – Mobile-first accordion v1.1.0
+   ========================================== */
+
+.wcc-weekly-content {
+	margin-block: 2.5rem;
+}
+
+.wcc-weekly-content__title {
+	margin-bottom: 1.25rem;
+}
+
+/* ── Index / Table of contents ─────────── */
+
+.wcc-weekly-content__index {
+	margin-bottom: 2rem;
+}
+
+.wcc-index-toggle {
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	border-left: 4px solid currentColor;
+	border-radius: 0 4px 4px 0;
+}
+
+.wcc-index-toggle > summary {
+	padding: 0.875rem 1.25rem;
+	cursor: pointer;
+	font-weight: 600;
+	user-select: none;
+	list-style: none; /* Remove default marker in Firefox */
+}
+
+/* Hide default arrows */
+.wcc-index-toggle > summary::-webkit-details-marker {
+	display: none;
+}
+
+.wcc-index-toggle > summary::after {
+	content: ' ▾';
+	font-size: 0.8em;
+	opacity: 0.55;
+}
+
+.wcc-index-toggle[open] > summary::after {
+	content: ' ▴';
+}
+
+.wcc-index-toggle > summary:hover {
+	background: rgba(0, 0, 0, 0.03);
+}
+
+.wcc-index-toggle ol {
+	margin: 0;
+	padding: 0.5rem 1.25rem 1rem 2.5rem;
+}
+
+.wcc-index-toggle ol li + li {
+	margin-top: 0.4rem;
+}
+
+/* ── Entry accordion ───────────────────── */
+
+.wcc-weekly-content__entries {
+	border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.wcc-weekly-entry {
+	border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+	/* Generous scroll offset: accounts for sticky admin bar on mobile (46px) */
+	scroll-margin-top: 4rem;
+}
+
+/* Summary = the clickable/tappable row (mobile: 2-row grid) */
+.wcc-weekly-entry > summary {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	grid-template-rows: auto auto;
+	align-items: center;
+	column-gap: 0.75rem;
+	padding: 1rem 3rem 1rem 1rem; /* right padding reserves space for ± indicator */
+	cursor: pointer;
+	user-select: none;
+	list-style: none;
+	position: relative;
+	min-height: 52px; /* WCAG-friendly tap target */
+}
+
+.wcc-weekly-entry > summary::-webkit-details-marker {
+	display: none;
+}
+
+/* Expand / collapse indicator */
+.wcc-weekly-entry > summary::after {
+	content: '+';
+	position: absolute;
+	right: 1rem;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 1.4rem;
+	font-weight: 300;
+	opacity: 0.4;
+	line-height: 1;
+	transition: opacity 0.15s;
+}
+
+.wcc-weekly-entry[open] > summary::after {
+	content: '−';
+}
+
+.wcc-weekly-entry__label {
+	grid-column: 1;
+	grid-row: 1 / 3;
+	align-self: center;
+	margin: 0;
+	padding: 0.2rem 0.5rem;
+	font-size: 0.7em;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	opacity: 0.55;
+	white-space: nowrap;
+}
+
+.wcc-weekly-entry__summary-title {
+	grid-column: 2;
+	grid-row: 1;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.wcc-weekly-entry__summary-date {
+	grid-column: 2;
+	grid-row: 2;
+	font-size: 0.82em;
+	opacity: 0.6;
+}
+
+/* Content area with open animation */
+.wcc-weekly-entry__content {
+	padding: 0.75rem 1rem 1.5rem;
+	animation: wcc-open 0.18s ease-out;
+}
+
+@keyframes wcc-open {
+	from {
+		opacity: 0;
+		transform: translateY(-5px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Hover / keyboard-focus styles */
+.wcc-weekly-entry > summary:hover {
+	background: rgba(0, 0, 0, 0.03);
+}
+
+.wcc-weekly-entry > summary:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: -2px;
+}
+
+/* ── Tablet and up (≥ 600px) ───────────── */
+@media (min-width: 600px) {
+	.wcc-weekly-entry > summary {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 1rem 3rem 1rem 1rem;
+	}
+
+	.wcc-weekly-entry__label {
+		min-width: 5.5rem;
+		flex-shrink: 0;
+		text-align: center;
+	}
+
+	.wcc-weekly-entry__summary-title {
+		flex: 1;
+	}
+
+	.wcc-weekly-entry__summary-date {
+		margin-left: auto;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+
+	.wcc-weekly-entry__content {
+		padding: 0.75rem 1.5rem 1.75rem;
+	}
+}

@@ -1,0 +1,137 @@
+/* ==========================================
+   WCC Admin – Meta box styles v1.1.0
+   ========================================== */
+
+.wcc-settings {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 24px;
+	padding: 12px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+}
+
+.wcc-entry {
+	margin: 16px 0;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Entry header – flex row: [title] [meta] [actions] */
+.wcc-entry__header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 14px;
+	background: #f6f7f7;
+}
+
+.wcc-entry__heading {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* Meta: date + status badge visible at all times */
+.wcc-entry__header-meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.wcc-entry__header-date {
+	font-size: 12px;
+	color: #50575e;
+}
+
+.wcc-entry__status-badge {
+	display: inline-block;
+	padding: 2px 7px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.wcc-entry__status-badge.is-publish {
+	background: #d7f0dc;
+	color: #1e6a2e;
+}
+
+.wcc-entry__status-badge.is-draft {
+	background: #fef9ec;
+	color: #7a5900;
+}
+
+/* Action buttons container */
+.wcc-entry__header > div:last-child {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-shrink: 0;
+}
+
+/* Save single entry button styling */
+.wcc-save-single-entry.wcc-saved {
+	background: #00a32a !important;
+	border-color: #00a32a !important;
+	color: #fff !important;
+	box-shadow: none !important;
+	text-shadow: none !important;
+}
+
+.wcc-entry__body {
+	padding: 14px;
+}
+
+.wcc-entry.is-collapsed .wcc-entry__body {
+	display: none;
+}
+
+/* Three-column grid inside the body: title | date | status */
+.wcc-entry__row {
+	display: grid;
+	grid-template-columns: 1fr 180px 150px;
+	gap: 14px;
+	margin-bottom: 14px;
+}
+
+.wcc-entry label span {
+	display: block;
+	margin-bottom: 5px;
+	font-weight: 600;
+}
+
+.wcc-content {
+	font-family: Consolas, Monaco, monospace;
+}
+
+/* Fix B4: stack columns earlier (900px instead of 782px) */
+@media (max-width: 900px) {
+	.wcc-entry__row {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Visual status indicators via coloured left border */
+.wcc-entry[data-status="publish"] .wcc-entry__header {
+	border-left: 3px solid #00a32a;
+}
+
+.wcc-entry[data-status="draft"] .wcc-entry__header {
+	border-left: 3px solid #dba617;
+}
+
+/* Entry count shown next to the "Añadir entrega" button */
+.wcc-entry-count {
+	margin-left: 10px;
+	font-size: 13px;
+	color: #50575e;
+	vertical-align: middle;
+}
