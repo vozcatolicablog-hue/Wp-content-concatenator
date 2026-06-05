@@ -154,7 +154,7 @@ function wcc_render_meta_box( $post ) {
 		</label>
 	</div>
 	<p class="description">
-		<?php esc_html_e( 'Cuando guardes una entrega nueva con estado "Publicada", la fecha del post se actualizará y volverá a aparecer como el post más reciente.', 'weekly-content-concatenator' ); ?>
+		<?php esc_html_e( 'Cuando guardes una entrega nueva con estado "Publicada" (con fecha de hoy o futura), la fecha del post se actualizará y volverá a aparecer como el post más reciente.', 'weekly-content-concatenator' ); ?>
 	</p>
 	<div id="wcc-entries">
 		<?php
@@ -297,7 +297,11 @@ function wcc_save_post( $post_id ) {
 		}
 
 		if ( 'publish' === $entry['status'] && ! in_array( $entry['id'], $old_ids, true ) ) {
-			$has_new = true;
+			// Evitar actualizar la fecha del post si la fecha de la entrega es pasada (anterior a hoy)
+			$today = current_time( 'Y-m-d' );
+			if ( $entry['date'] >= $today ) {
+				$has_new = true;
+			}
 		}
 		$entries[] = $entry;
 	}
@@ -558,7 +562,11 @@ function wcc_ajax_save_single_entry() {
 
 	$has_new = false;
 	if ( 'publish' === $sanitized_entry['status'] && ! in_array( $sanitized_entry['id'], $old_ids, true ) ) {
-		$has_new = true;
+		// Evitar actualizar la fecha del post si la fecha de la entrega es pasada (anterior a hoy)
+		$today = current_time( 'Y-m-d' );
+		if ( $sanitized_entry['date'] >= $today ) {
+			$has_new = true;
+		}
 	}
 
 	$bumped = false;

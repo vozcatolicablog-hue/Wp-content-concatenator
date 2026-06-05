@@ -73,7 +73,7 @@ Para forzar que el indice se oculte o se muestre desde el shortcode:
 
 El post vuelve al inicio solo cuando el plugin detecta por primera vez una entrega publicada.
 
-Editar una entrega que ya estaba publicada no vuelve a actualizar la fecha del post. Publicar una entrega nueva si actualiza la fecha, siempre que el post principal ya este publicado.
+Editar una entrega que ya estaba publicada no vuelve a actualizar la fecha del post. Publicar una entrega nueva si actualiza la fecha, siempre que el post principal ya este publicado y la fecha de la entrega no sea pasada (anterior a hoy).
 
 == Preguntas frecuentes ==
 
