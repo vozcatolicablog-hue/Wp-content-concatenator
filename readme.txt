@@ -4,7 +4,7 @@ Tags: series, cursos, contenido semanal, publicaciones, shortcodes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,11 @@ Si. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del 
 
 == Changelog ==
 
+= 1.4.0 =
+
+* Agrega un panel de configuracion en Ajustes > Concatenador Semanal para personalizar colores y estilos.
+* Carga diferida de iframes en acordeones cerrados para optimizar el rendimiento y velocidad del post.
+
 = 1.3.0 =
 
 * Evita duplicar entregas cuando el post tiene visualizacion automatica y tambien usa el shortcode.
@@ -141,6 +146,10 @@ Si. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del 
 * Actualizacion de fecha del post al publicar una entrega nueva.
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+
+Actualiza para acceder al panel de configuracion de estilos y mejorar el rendimiento de la pagina con la carga diferida de iframes.
 
 = 1.3.0 =
 

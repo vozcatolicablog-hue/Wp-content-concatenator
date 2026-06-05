@@ -17,9 +17,10 @@
 }
 
 .wcc-index-toggle {
-	border: 1px solid rgba(0, 0, 0, 0.12);
-	border-left: 4px solid currentColor;
+	border: 1px solid var(--wcc-index-border-color, rgba(0, 0, 0, 0.12));
+	border-left: 4px solid var(--wcc-index-left-border-color, currentColor);
 	border-radius: 0 4px 4px 0;
+	background-color: var(--wcc-index-bg, transparent);
 }
 
 .wcc-index-toggle > summary {
@@ -46,7 +47,7 @@
 }
 
 .wcc-index-toggle > summary:hover {
-	background: rgba(0, 0, 0, 0.03);
+	background-color: var(--wcc-index-hover-bg, rgba(0, 0, 0, 0.03));
 }
 
 .wcc-index-toggle ol {
@@ -61,11 +62,11 @@
 /* ── Entry accordion ───────────────────── */
 
 .wcc-weekly-content__entries {
-	border-top: 1px solid rgba(0, 0, 0, 0.12);
+	border-top: 1px solid var(--wcc-entry-border-color, rgba(0, 0, 0, 0.12));
 }
 
 .wcc-weekly-entry {
-	border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+	border-bottom: 1px solid var(--wcc-entry-border-color, rgba(0, 0, 0, 0.12));
 	/* Generous scroll offset: accounts for sticky admin bar on mobile (46px) */
 	scroll-margin-top: 4rem;
 }
@@ -83,6 +84,8 @@
 	list-style: none;
 	position: relative;
 	min-height: 52px; /* WCAG-friendly tap target */
+	background-color: var(--wcc-entry-header-bg, transparent);
+	color: var(--wcc-entry-header-color, inherit);
 }
 
 .wcc-weekly-entry > summary::-webkit-details-marker {
@@ -139,6 +142,7 @@
 .wcc-weekly-entry__content {
 	padding: 0.75rem 1rem 1.5rem;
 	animation: wcc-open 0.18s ease-out;
+	background-color: var(--wcc-entry-content-bg, transparent);
 }
 
 @keyframes wcc-open {
@@ -155,7 +159,7 @@
 
 /* Hover / keyboard-focus styles */
 .wcc-weekly-entry > summary:hover {
-	background: rgba(0, 0, 0, 0.03);
+	background-color: var(--wcc-entry-hover-bg, rgba(0, 0, 0, 0.03));
 }
 
 .wcc-weekly-entry > summary:focus-visible {

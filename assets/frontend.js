@@ -31,4 +31,20 @@
 				}, 50 );
 			} );
 		} );
+
+	/**
+	 * Defer iframe loading: load iframes only when their parent accordion (<details>) is opened.
+	 */
+	document
+		.querySelectorAll( '.wcc-weekly-entry' )
+		.forEach( function ( entry ) {
+			entry.addEventListener( 'toggle', function () {
+				if ( entry.open ) {
+					entry.querySelectorAll( 'iframe[data-src]' ).forEach( function ( iframe ) {
+						iframe.setAttribute( 'src', iframe.getAttribute( 'data-src' ) );
+						iframe.removeAttribute( 'data-src' );
+					} );
+				}
+			} );
+		} );
 }() );

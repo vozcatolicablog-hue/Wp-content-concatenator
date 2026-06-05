@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Concatenador de Contenido Semanal
  * Description: Organiza entregas semanales dentro de posts normales y devuelve el post al inicio cuando se publica una entrega nueva.
- * Version: 1.3.0
+ * Version: 1.4.0
  * Author: Voz Catolica
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WCC_VERSION', '1.3.0' );
+define( 'WCC_VERSION', '1.4.0' );
 define( 'WCC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
@@ -40,6 +40,7 @@ function wcc_enqueue_frontend_assets() {
 
 	wp_enqueue_style( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.css', array(), WCC_VERSION );
 	wp_enqueue_script( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.js', array(), WCC_VERSION, true );
+	wcc_add_custom_styles();
 }
 add_action( 'wp_enqueue_scripts', 'wcc_enqueue_frontend_assets' );
 
@@ -365,6 +366,22 @@ function wcc_sort_entries( $entries, $order ) {
 }
 
 /**
+ * Defer iframe loading by replacing src with data-src.
+ *
+ * @param string $html HTML content.
+ * @return string
+ */
+function wcc_defer_iframes( $html ) {
+	return preg_replace_callback(
+		'/<iframe\b[^>]*>/i',
+		function ( $matches ) {
+			return preg_replace( '/\bsrc\s*=\s*/i', 'data-src=', $matches[0] );
+		},
+		$html
+	);
+}
+
+/**
  * Build weekly entries markup for a post.
  *
  * @param int  $post_id             Post ID.
@@ -397,6 +414,7 @@ function wcc_get_entries_html( $post_id, $override_hide_index = null ) {
 	// The early wcc_enqueue_frontend_assets() hook handles the common singular-post case.
 	wp_enqueue_style( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.css', array(), WCC_VERSION );
 	wp_enqueue_script( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.js', array(), WCC_VERSION, true );
+	wcc_add_custom_styles();
 
 	ob_start();
 	?>
@@ -422,7 +440,15 @@ function wcc_get_entries_html( $post_id, $override_hide_index = null ) {
 						<span class="wcc-weekly-entry__summary-title"><?php echo esc_html( $entry['title'] ? $entry['title'] : sprintf( __( 'Entrega %d', 'weekly-content-concatenator' ), $number + 1 ) ); ?></span>
 						<time class="wcc-weekly-entry__summary-date" datetime="<?php echo esc_attr( $entry['date'] ); ?>"><?php echo esc_html( wp_date( get_option( 'date_format' ), strtotime( $entry['date'] ) ) ); ?></time>
 					</summary>
-					<div class="wcc-weekly-entry__content"><?php echo do_shortcode( wpautop( $entry['content'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitized on save. ?></div>
+					<div class="wcc-weekly-entry__content">
+						<?php
+						$entry_content = do_shortcode( wpautop( $entry['content'] ) );
+						if ( 0 !== $number ) {
+							$entry_content = wcc_defer_iframes( $entry_content );
+						}
+						echo $entry_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitized on save.
+						?>
+					</div>
 				</details>
 			<?php endforeach; ?>
 		</div>
@@ -590,3 +616,260 @@ function wcc_ajax_save_single_entry() {
 	);
 }
 add_action( 'wp_ajax_wcc_save_single_entry', 'wcc_ajax_save_single_entry' );
+
+/**
+ * Register settings page for plugin styles.
+ */
+function wcc_register_settings_page() {
+	add_options_page(
+		__( 'Ajustes de Concatenador Semanal', 'weekly-content-concatenator' ),
+		__( 'Concatenador Semanal', 'weekly-content-concatenator' ),
+		'manage_options',
+		'wcc-settings',
+		'wcc_render_settings_page'
+	);
+}
+add_action( 'admin_menu', 'wcc_register_settings_page' );
+
+/**
+ * Initialize settings, sections and fields.
+ */
+function wcc_settings_init() {
+	register_setting( 'wcc_settings_group', 'wcc_styles', 'wcc_sanitize_styles' );
+
+	add_settings_section(
+		'wcc_accordion_section',
+		__( 'Estilos del Acordeón (Entregas)', 'weekly-content-concatenator' ),
+		'wcc_accordion_section_callback',
+		'wcc-settings'
+	);
+
+	add_settings_field(
+		'entry_header_bg',
+		__( 'Color de fondo del encabezado', 'weekly-content-concatenator' ),
+		'wcc_color_picker_field_callback',
+		'wcc-settings',
+		'wcc_accordion_section',
+		array( 'field' => 'entry_header_bg' )
+	);
+
+	add_settings_field(
+		'entry_header_color',
+		__( 'Color de texto del encabezado', 'weekly-content-concatenator' ),
+		'wcc_color_picker_field_callback',
+		'wcc-settings',
+		'wcc_accordion_section',
+		array( 'field' => 'entry_header_color' )
+	);
+
+	add_settings_field(
+		'entry_hover_bg',
+		__( 'Color de fondo al pasar el cursor (Hover)', 'weekly-content-concatenator' ),
+		'wcc_color_picker_field_callback',
+		'wcc-settings',
+		'wcc_accordion_section',
+		array( 'field' => 'entry_hover_bg' )
+	);
+
+	add_settings_field(
+		'entry_content_bg',
+		__( 'Color de fondo del contenido', 'weekly-content-concatenator' ),
+		'wcc_color_picker_field_callback',
+		'wcc-settings',
+		'wcc_accordion_section',
+		array( 'field' => 'entry_content_bg' )
+	);
+
+	add_settings_field(
+		'entry_border_color',
+		__( 'Color de bordes', 'weekly-content-concatenator' ),
+		'wcc_color_picker_field_callback',
+		'wcc-settings',
+		'wcc_accordion_section',
+		array( 'field' => 'entry_border_color' )
+	);
+
+	add_settings_section(
+		'wcc_index_section',
+		__( 'Estilos del Índice de Entregas', 'weekly-content-concatenator' ),
+		'wcc_index_section_callback',
+		'wcc-settings'
+	);
+
+	add_settings_field(
+		'index_bg',
+		__( 'Color de fondo del índice', 'weekly-content-concatenator' ),
+		'wcc_color_picker_field_callback',
+		'wcc-settings',
+		'wcc_index_section',
+		array( 'field' => 'index_bg' )
+	);
+
+	add_settings_field(
+		'index_border_color',
+		__( 'Color de borde general', 'weekly-content-concatenator' ),
+		'wcc_color_picker_field_callback',
+		'wcc-settings',
+		'wcc_index_section',
+		array( 'field' => 'index_border_color' )
+	);
+
+	add_settings_field(
+		'index_left_border_color',
+		__( 'Color de borde destacado (izquierdo)', 'weekly-content-concatenator' ),
+		'wcc_color_picker_field_callback',
+		'wcc-settings',
+		'wcc_index_section',
+		array( 'field' => 'index_left_border_color' )
+	);
+
+	add_settings_field(
+		'index_hover_bg',
+		__( 'Color de fondo del índice al pasar el cursor (Hover)', 'weekly-content-concatenator' ),
+		'wcc_color_picker_field_callback',
+		'wcc-settings',
+		'wcc_index_section',
+		array( 'field' => 'index_hover_bg' )
+	);
+}
+add_action( 'admin_init', 'wcc_settings_init' );
+
+/**
+ * Accordion section description callback.
+ */
+function wcc_accordion_section_callback() {
+	echo '<p>' . esc_html__( 'Personaliza los colores de las cajas de las entregas.', 'weekly-content-concatenator' ) . '</p>';
+}
+
+/**
+ * Index section description callback.
+ */
+function wcc_index_section_callback() {
+	echo '<p>' . esc_html__( 'Personaliza los colores de la sección del índice / tabla de contenidos.', 'weekly-content-concatenator' ) . '</p>';
+}
+
+/**
+ * Renders the color picker field.
+ *
+ * @param array $args Field arguments.
+ */
+function wcc_color_picker_field_callback( $args ) {
+	$field   = $args['field'];
+	$styles  = get_option( 'wcc_styles', array() );
+	$value   = isset( $styles[ $field ] ) ? $styles[ $field ] : '';
+	echo '<input type="text" name="wcc_styles[' . esc_attr( $field ) . ']" value="' . esc_attr( $value ) . '" class="wcc-color-field" data-default-color="" />';
+}
+
+/**
+ * Sanitize style inputs.
+ *
+ * @param array $input Input values.
+ * @return array
+ */
+function wcc_sanitize_styles( $input ) {
+	$output = array();
+	$fields = array(
+		'entry_header_bg',
+		'entry_header_color',
+		'entry_hover_bg',
+		'entry_content_bg',
+		'entry_border_color',
+		'index_bg',
+		'index_border_color',
+		'index_left_border_color',
+		'index_hover_bg',
+	);
+
+	foreach ( $fields as $field ) {
+		if ( isset( $input[ $field ] ) ) {
+			$color = sanitize_text_field( $input[ $field ] );
+			// Check if it is empty, a valid hex color, rgb/rgba, or hsl/hsla
+			if ( empty( $color ) || preg_match( '/^#([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/', $color ) || preg_match( '/^(rgb|rgba|hsl|hsla)\(/i', $color ) ) {
+				$output[ $field ] = $color;
+			} else {
+				$output[ $field ] = '';
+			}
+		}
+	}
+	return $output;
+}
+
+/**
+ * Enqueue scripts and styles for the settings page.
+ *
+ * @param string $hook Page hook.
+ */
+function wcc_admin_settings_assets( $hook ) {
+	if ( 'settings_page_wcc-settings' !== $hook ) {
+		return;
+	}
+	wp_enqueue_style( 'wp-color-picker' );
+	wp_enqueue_script( 'wcc-settings-js', WCC_PLUGIN_URL . 'assets/settings.js', array( 'wp-color-picker', 'jquery' ), WCC_VERSION, true );
+}
+add_action( 'admin_enqueue_scripts', 'wcc_admin_settings_assets' );
+
+/**
+ * Render settings page.
+ */
+function wcc_render_settings_page() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	?>
+	<div class="wrap">
+		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+		<form action="options.php" method="post">
+			<?php
+			settings_fields( 'wcc_settings_group' );
+			do_settings_sections( 'wcc-settings' );
+			submit_button();
+			?>
+		</form>
+	</div>
+	<?php
+}
+
+/**
+ * Add inline custom styles based on settings option.
+ */
+function wcc_add_custom_styles() {
+	static $added = false;
+	if ( $added ) {
+		return;
+	}
+
+	$styles = get_option( 'wcc_styles', array() );
+	if ( empty( $styles ) ) {
+		return;
+	}
+
+	$custom_css = ':root {' . "\n";
+
+	$mapping = array(
+		'entry_header_bg'         => '--wcc-entry-header-bg',
+		'entry_header_color'      => '--wcc-entry-header-color',
+		'entry_hover_bg'          => '--wcc-entry-hover-bg',
+		'entry_content_bg'        => '--wcc-entry-content-bg',
+		'entry_border_color'      => '--wcc-entry-border-color',
+		'index_bg'                => '--wcc-index-bg',
+		'index_border_color'      => '--wcc-index-border-color',
+		'index_left_border_color' => '--wcc-index-left-border-color',
+		'index_hover_bg'          => '--wcc-index-hover-bg',
+	);
+
+	$has_vars = false;
+	foreach ( $mapping as $key => $css_var ) {
+		if ( ! empty( $styles[ $key ] ) ) {
+			$custom_css .= '  ' . $css_var . ': ' . esc_attr( $styles[ $key ] ) . ';' . "\n";
+			$has_vars = true;
+		}
+	}
+
+	$custom_css .= '}';
+
+	if ( $has_vars ) {
+		wp_add_inline_style( 'wcc-frontend', $custom_css );
+	}
+
+	$added = true;
+}
