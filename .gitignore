@@ -1,0 +1,11 @@
+.DS_Store
+Thumbs.db
+
+vendor/
+node_modules/
+
+.phpcs-cache
+.phpunit.result.cache
+
+release/
+*.log

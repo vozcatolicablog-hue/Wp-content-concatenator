@@ -7,7 +7,9 @@
 		labelDraft: 'Borrador',
 		confirmDelete: '¿Eliminar esta entrega? El cambio se aplicará al guardar el post.',
 		labelEntries: 'entregas',
-		labelPublishedOf: 'publicadas'
+		labelPublishedOf: 'publicadas',
+		noticeSaved: 'Entrega guardada correctamente.',
+		noticeBumped: 'Entrega publicada: la fecha del post fue actualizada y el post volvió al inicio.'
 	};
 
 	// B1: Module-level counter seeded with timestamp – never collides even after deletions.
@@ -49,6 +51,16 @@
 		$( '#wcc-entry-count' ).text(
 			'(' + total + ' ' + wccAdmin.labelEntries + ', ' + published + ' ' + wccAdmin.labelPublishedOf + ')'
 		);
+	}
+
+	function showNotice( message, type ) {
+		var noticeType = type || 'success';
+		var $notice = $( '<div />', {
+			class: 'notice notice-' + noticeType + ' is-dismissible wcc-ajax-notice'
+		} ).append( $( '<p />' ).text( message ) );
+
+		$( '.wcc-ajax-notice' ).remove();
+		$( '#wcc_weekly_content .inside' ).prepend( $notice );
 	}
 
 	// A1: On page load collapse all entries except the first, and sync badges.
@@ -151,6 +163,11 @@
 				action: 'wcc_save_single_entry',
 				post_id: postId,
 				nonce: nonce,
+				settings: {
+					enabled: $( 'input[name="wcc_enabled"]' ).is( ':checked' ) ? '1' : '',
+					hide_index: $( 'input[name="wcc_hide_index"]' ).is( ':checked' ) ? '1' : '',
+					order: $( 'select[name="wcc_order"]' ).val() || 'desc'
+				},
 				entry: {
 					id: id,
 					title: title,
@@ -172,16 +189,22 @@
 
 					// Feedback visual exitoso
 					$button.text( wccAdmin.labelSaved ).addClass( 'wcc-saved' );
+					showNotice(
+						response.data.bumped ? wccAdmin.noticeBumped : wccAdmin.noticeSaved,
+						'success'
+					);
 					setTimeout( function () {
 						$button.prop( 'disabled', false ).text( originalText ).removeClass( 'wcc-saved' );
 					}, 2000 );
 				} else {
 					alert( 'Error al guardar: ' + ( response.data.message || 'Error desconocido' ) );
+					showNotice( response.data.message || 'Error desconocido', 'error' );
 					$button.prop( 'disabled', false ).text( originalText );
 				}
 			},
 			error: function () {
 				alert( 'Ocurrió un error en la comunicación con el servidor.' );
+				showNotice( 'Ocurrió un error en la comunicación con el servidor.', 'error' );
 				$button.prop( 'disabled', false ).text( originalText );
 			}
 		} );

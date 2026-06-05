@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Concatenador de Contenido Semanal
  * Description: Organiza entregas semanales dentro de posts normales y devuelve el post al inicio cuando se publica una entrega nueva.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: Voz Catolica
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -13,24 +13,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WCC_VERSION', '1.2.0' );
+define( 'WCC_VERSION', '1.2.1' );
 define( 'WCC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
- * Enqueue frontend assets early for singular posts that use weekly content.
- * Ensures CSS/JS land in <head> instead of being injected mid-content (Fix B2).
+ * Enqueue frontend assets early for singular content that uses weekly content.
+ * Ensures CSS/JS land in <head> instead of being injected mid-content.
  */
 function wcc_enqueue_frontend_assets() {
-	if ( ! is_singular( 'post' ) ) {
+	if ( ! is_singular() ) {
 		return;
 	}
+
 	$post_id = get_queried_object_id();
+	if ( ! $post_id ) {
+		return;
+	}
+
+	$post_content = get_post_field( 'post_content', $post_id );
 	if (
-		! get_post_meta( $post_id, '_wcc_enabled', true ) &&
-		! has_shortcode( get_post_field( 'post_content', $post_id ), 'contenido_semanal' )
+		! ( 'post' === get_post_type( $post_id ) && get_post_meta( $post_id, '_wcc_enabled', true ) ) &&
+		! has_shortcode( $post_content, 'contenido_semanal' )
 	) {
 		return;
 	}
+
 	wp_enqueue_style( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.css', array(), WCC_VERSION );
 	wp_enqueue_script( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.js', array(), WCC_VERSION, true );
 }
@@ -201,6 +208,8 @@ function wcc_admin_assets( $hook ) {
 			'labelSave'        => __( 'Guardar', 'weekly-content-concatenator' ),
 			'labelSaving'      => __( '...', 'weekly-content-concatenator' ),
 			'labelSaved'       => __( '✓', 'weekly-content-concatenator' ),
+			'noticeSaved'      => __( 'Entrega guardada correctamente.', 'weekly-content-concatenator' ),
+			'noticeBumped'     => __( 'Entrega publicada: la fecha del post fue actualizada y el post volvió al inicio.', 'weekly-content-concatenator' ),
 		)
 	);
 }
@@ -425,7 +434,13 @@ function wcc_get_entries_html( $post_id, $override_hide_index = null ) {
  * @return string
  */
 function wcc_append_entries_to_content( $content ) {
-	if ( is_singular( 'post' ) && in_the_loop() && is_main_query() && get_post_meta( get_the_ID(), '_wcc_enabled', true ) ) {
+	if (
+		is_singular( 'post' ) &&
+		in_the_loop() &&
+		is_main_query() &&
+		get_post_meta( get_the_ID(), '_wcc_enabled', true ) &&
+		! has_shortcode( $content, 'contenido_semanal' )
+	) {
 		$content .= wcc_get_entries_html( get_the_ID() );
 	}
 
@@ -455,6 +470,19 @@ function wcc_shortcode( $atts ) {
 
 	$post_id    = absint( $atts['id'] );
 	$hide_index = $atts['hide_index'];
+
+	if ( ! $post_id ) {
+		return '';
+	}
+
+	$post = get_post( $post_id );
+	if ( ! $post || 'trash' === $post->post_status ) {
+		return '';
+	}
+
+	if ( ! is_post_publicly_viewable( $post ) && ! current_user_can( 'read_post', $post_id ) ) {
+		return '';
+	}
 
 	if ( '' !== $hide_index ) {
 		$hide_index = filter_var( $hide_index, FILTER_VALIDATE_BOOLEAN );
@@ -518,6 +546,15 @@ function wcc_ajax_save_single_entry() {
 	}
 
 	update_post_meta( $post_id, '_wcc_entries', $entries );
+
+	if ( isset( $_POST['settings'] ) && is_array( $_POST['settings'] ) ) {
+		$settings = wp_unslash( $_POST['settings'] );
+		$order    = isset( $settings['order'] ) ? sanitize_key( $settings['order'] ) : 'desc';
+
+		update_post_meta( $post_id, '_wcc_enabled', ! empty( $settings['enabled'] ) ? '1' : '0' );
+		update_post_meta( $post_id, '_wcc_hide_index', ! empty( $settings['hide_index'] ) ? '1' : '0' );
+		update_post_meta( $post_id, '_wcc_order', 'asc' === $order ? 'asc' : 'desc' );
+	}
 
 	$has_new = false;
 	if ( 'publish' === $sanitized_entry['status'] && ! in_array( $sanitized_entry['id'], $old_ids, true ) ) {
