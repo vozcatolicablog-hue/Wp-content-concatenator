@@ -10,7 +10,10 @@
 		labelEntries: 'entregas',
 		labelPublishedOf: 'publicadas',
 		noticeSaved: 'Entrega guardada correctamente.',
-		noticeBumped: 'Entrega publicada: la fecha del post fue actualizada y el post volvió al inicio.'
+		noticeBumped: 'Entrega publicada: la fecha del post fue actualizada y el post volvió al inicio.',
+		errorEmpty: 'El título y el contenido no pueden estar vacíos.',
+		errorPostId: 'No se pudo obtener el ID del post.',
+		errorServer: 'Ocurrió un error en la comunicación con el servidor.'
 	};
 
 	// B1: Module-level counter seeded with timestamp – never collides even after deletions.
@@ -23,9 +26,10 @@
 	/**
 	 * Sync the status badge and date shown in the collapsed header.
 	 *
-	 * @param {jQuery} $entry The .wcc-entry element to update.
+	 * @param {jQuery} $entry        The .wcc-entry element to update.
+	 * @param {string} formattedDate Optional server-formatted date string.
 	 */
-	function updateHeaderMeta( $entry ) {
+	function updateHeaderMeta( $entry, formattedDate ) {
 		var status  = $entry.find( 'select[name*="[status]"]' ).val();
 		var date    = $entry.find( 'input[type="date"]' ).val() || '';
 		var time    = $entry.find( 'input[type="time"]' ).val() || '';
@@ -43,7 +47,11 @@
 			$badge.addClass( 'is-draft' ).text( wccAdmin.labelDraft );
 		}
 
-		$dateEl.text( time ? date + ' ' + time : date );
+		if ( formattedDate ) {
+			$dateEl.text( formattedDate );
+		} else {
+			$dateEl.text( time ? date + ' ' + time : date );
+		}
 	}
 
 	/**
@@ -60,7 +68,9 @@
 	function showNotice( message, type ) {
 		var noticeType = type || 'success';
 		var $notice = $( '<div />', {
-			class: 'notice notice-' + noticeType + ' is-dismissible wcc-ajax-notice'
+			class: 'notice notice-' + noticeType + ' is-dismissible wcc-ajax-notice',
+			role: 'alert',
+			'aria-live': 'polite'
 		} ).append( $( '<p />' ).text( message ) );
 
 		$( '.wcc-ajax-notice' ).remove();
@@ -74,6 +84,10 @@
 			updateHeaderMeta( $( this ) );
 		} );
 		$entries.not( ':first' ).addClass( 'is-collapsed' );
+		$entries.each( function () {
+			var isCollapsed = $( this ).hasClass( 'is-collapsed' );
+			$( this ).find( '.wcc-toggle-entry' ).attr( 'aria-expanded', ! isCollapsed );
+		} );
 		updateEntryCount();
 
 		// Inicializar jQuery UI Sortable para permitir arrastrar y soltar
@@ -90,13 +104,14 @@
 	// Add a new entry.
 	$( '#wcc-add-entry' ).on( 'click', function () {
 		// B3: Collapse all existing entries before inserting the new one.
-		$( '#wcc-entries .wcc-entry' ).addClass( 'is-collapsed' );
+		$( '#wcc-entries .wcc-entry' ).addClass( 'is-collapsed' ).find( '.wcc-toggle-entry' ).attr( 'aria-expanded', 'false' );
 
 		var html = $( '#tmpl-wcc-entry' ).html().replace( /__INDEX__/g, getNextIndex() );
 		$( '#wcc-entries' ).prepend( html );
 
 		var $new = $( '#wcc-entries .wcc-entry' ).first();
 		updateHeaderMeta( $new );
+		$new.find( '.wcc-toggle-entry' ).attr( 'aria-expanded', 'true' );
 		$new.find( '.wcc-title' ).trigger( 'focus' );
 		updateEntryCount();
 	} );
@@ -111,7 +126,10 @@
 
 	// Toggle collapse/expand.
 	$( '#wcc-entries' ).on( 'click', '.wcc-toggle-entry', function () {
-		$( this ).closest( '.wcc-entry' ).toggleClass( 'is-collapsed' );
+		var $entry = $( this ).closest( '.wcc-entry' );
+		$entry.toggleClass( 'is-collapsed' );
+		var isCollapsed = $entry.hasClass( 'is-collapsed' );
+		$( this ).attr( 'aria-expanded', ! isCollapsed );
 	} );
 
 	// Keep heading text in sync while the user types.
@@ -155,7 +173,7 @@
 		var id      = $idInput.val() || '';
 
 		if ( ! title && ! content.trim() ) {
-			alert( 'El título y el contenido no pueden estar vacíos.' );
+			alert( wccAdmin.errorEmpty );
 			return;
 		}
 
@@ -163,7 +181,7 @@
 		var nonce  = $( 'input[name="wcc_nonce"]' ).val();
 
 		if ( ! postId ) {
-			alert( 'No se pudo obtener el ID del post.' );
+			alert( wccAdmin.errorPostId );
 			return;
 		}
 
@@ -210,7 +228,7 @@
 					}
 
 					// Actualizar la meta cabecera
-					updateHeaderMeta( $entry );
+					updateHeaderMeta( $entry, response.data.formatted_date );
 
 					// Feedback visual exitoso
 					$button.text( wccAdmin.labelSaved ).addClass( 'wcc-saved' );
@@ -228,8 +246,8 @@
 				}
 			},
 			error: function () {
-				alert( 'Ocurrió un error en la comunicación con el servidor.' );
-				showNotice( 'Ocurrió un error en la comunicación con el servidor.', 'error' );
+				alert( wccAdmin.errorServer );
+				showNotice( wccAdmin.errorServer, 'error' );
 				$button.prop( 'disabled', false ).text( originalText );
 			}
 		} );

@@ -9,3 +9,5 @@ node_modules/
 
 release/
 *.log
+*.zip
+desktop.ini

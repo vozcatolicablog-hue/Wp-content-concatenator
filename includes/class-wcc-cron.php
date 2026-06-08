@@ -41,11 +41,12 @@ class WCC_Cron {
 	/**
 	 * Sincroniza eventos de WP-Cron programados para entregas programadas.
 	 *
-	 * @param int   $post_id Post ID.
-	 * @param array $entries Lista de entregas.
+	 * @param int   $post_id     Post ID.
+	 * @param array $entries     Lista de entregas nuevas.
+	 * @param array $old_entries Lista de entregas viejas a limpiar.
 	 */
-	public static function sync_scheduled_entries( $post_id, $entries ) {
-		self::clear_scheduled_entries( $post_id, $entries );
+	public static function sync_scheduled_entries( $post_id, $entries, $old_entries = array() ) {
+		self::clear_scheduled_entries( $post_id, $old_entries );
 
 		if ( ! is_array( $entries ) ) {
 			return;
@@ -75,6 +76,7 @@ class WCC_Cron {
 		$entries = get_post_meta( $post_id, '_wcc_entries', true );
 		$entries = is_array( $entries ) ? $entries : array();
 		$updated = false;
+		$scheduled_timestamp = 0;
 
 		foreach ( $entries as $key => $entry ) {
 			if (
@@ -85,6 +87,7 @@ class WCC_Cron {
 			) {
 				$entries[ $key ]['status'] = 'publish';
 				$updated                  = true;
+				$scheduled_timestamp      = wcc_get_entry_timestamp( $entry );
 				break;
 			}
 		}
@@ -96,11 +99,12 @@ class WCC_Cron {
 		update_post_meta( $post_id, '_wcc_entries', $entries );
 
 		if ( 'publish' === get_post_status( $post_id ) ) {
+			$bump_timestamp = $scheduled_timestamp ? $scheduled_timestamp : time();
 			wp_update_post(
 				array(
 					'ID'            => $post_id,
-					'post_date'     => current_time( 'mysql' ),
-					'post_date_gmt' => current_time( 'mysql', true ),
+					'post_date'     => wp_date( 'Y-m-d H:i:s', $bump_timestamp ),
+					'post_date_gmt' => gmdate( 'Y-m-d H:i:s', $bump_timestamp ),
 				)
 			);
 		}

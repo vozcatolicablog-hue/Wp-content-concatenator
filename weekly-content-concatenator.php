@@ -106,21 +106,48 @@ function wcc_is_entry_visible( $entry ) {
  * @return array
  */
 function wcc_sort_entries( $entries, $order ) {
-	usort(
-		$entries,
-		function ( $a, $b ) use ( $order ) {
-			$comparison = wcc_get_entry_timestamp( $a ) <=> wcc_get_entry_timestamp( $b );
-			return 'asc' === $order ? $comparison : -$comparison;
-		}
-	);
+	if ( empty( $entries ) || ! is_array( $entries ) ) {
+		return array();
+	}
+
+	$timestamps = array_map( 'wcc_get_entry_timestamp', $entries );
+	$direction  = 'asc' === $order ? SORT_ASC : SORT_DESC;
+	array_multisort( $timestamps, $direction, SORT_NUMERIC, $entries );
 
 	return $entries;
+}
+
+/**
+ * Validar colores RGB/RGBA, HSL/HSLA y HEX robustamente.
+ *
+ * @param string $color Color ingresado.
+ * @return bool
+ */
+function wcc_is_valid_color( $color ) {
+	$color = trim( $color );
+	if ( empty( $color ) ) {
+		return true;
+	}
+	if ( preg_match( '/^#([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/', $color ) ) {
+		return true;
+	}
+	if ( preg_match( '/^[a-zA-Z]+$/', $color ) && in_array( strtolower( $color ), array( 'transparent', 'inherit', 'initial', 'currentcolor' ), true ) ) {
+		return true;
+	}
+	if ( preg_match( '/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*(0|1|0?\.\d+)\s*)?\)$/i', $color ) ) {
+		return true;
+	}
+	if ( preg_match( '/^hsla?\(\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*(,\s*(0|1|0?\.\d+)\s*)?\)$/i', $color ) ) {
+		return true;
+	}
+	return false;
 }
 
 /**
  * Añadir estilos CSS en línea según ajustes del plugin.
  */
 function wcc_add_custom_styles() {
+	// Prevents printing the custom styles multiple times when there are multiple shortcodes on the same page.
 	static $added = false;
 	if ( $added ) {
 		return;
@@ -147,8 +174,8 @@ function wcc_add_custom_styles() {
 
 	$has_vars = false;
 	foreach ( $mapping as $key => $css_var ) {
-		if ( ! empty( $styles[ $key ] ) ) {
-			$custom_css .= '  ' . $css_var . ': ' . esc_attr( $styles[ $key ] ) . ';' . "\n";
+		if ( ! empty( $styles[ $key ] ) && wcc_is_valid_color( $styles[ $key ] ) ) {
+			$custom_css .= '  ' . $css_var . ': ' . wp_strip_all_tags( $styles[ $key ] ) . ';' . "\n";
 			$has_vars = true;
 		}
 	}

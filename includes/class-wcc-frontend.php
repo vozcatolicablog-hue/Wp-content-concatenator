@@ -24,6 +24,9 @@ class WCC_Frontend {
 	 * Encolar los assets en el frontend si es necesario.
 	 */
 	public function enqueue_frontend_assets() {
+		wp_register_style( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.css', array(), WCC_VERSION );
+		wp_register_script( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.js', array(), WCC_VERSION, true );
+
 		if ( ! is_singular() ) {
 			return;
 		}
@@ -41,8 +44,8 @@ class WCC_Frontend {
 			return;
 		}
 
-		wp_enqueue_style( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.css', array(), WCC_VERSION );
-		wp_enqueue_script( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.js', array(), WCC_VERSION, true );
+		wp_enqueue_style( 'wcc-frontend' );
+		wp_enqueue_script( 'wcc-frontend' );
 		wcc_add_custom_styles();
 	}
 
@@ -70,8 +73,11 @@ class WCC_Frontend {
 	 * @return string
 	 */
 	public function get_entries_html( $post_id, $override_hide_index = null ) {
-		$entries = get_post_meta( $post_id, '_wcc_entries', true );
-		$order   = get_post_meta( $post_id, '_wcc_order', true );
+		$all_meta   = get_post_meta( $post_id );
+		$entries    = isset( $all_meta['_wcc_entries'][0] ) ? maybe_unserialize( $all_meta['_wcc_entries'][0] ) : array();
+		$order      = isset( $all_meta['_wcc_order'][0] ) ? $all_meta['_wcc_order'][0] : 'desc';
+		$hide_index = isset( $all_meta['_wcc_hide_index'][0] ) ? $all_meta['_wcc_hide_index'][0] : '0';
+
 		$entries = is_array( $entries ) ? $entries : array();
 		$entries = array_values(
 			array_filter(
@@ -88,11 +94,10 @@ class WCC_Frontend {
 
 		$entries = wcc_sort_entries( $entries, 'asc' === $order ? 'asc' : 'desc' );
 
-		$hide_index = get_post_meta( $post_id, '_wcc_hide_index', true );
-		$hide_index = ( null !== $override_hide_index ) ? (bool) $override_hide_index : (bool) $hide_index;
+		$hide_index = ( null !== $override_hide_index ) ? (bool) $override_hide_index : filter_var( $hide_index, FILTER_VALIDATE_BOOLEAN );
 
-		wp_enqueue_style( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.css', array(), WCC_VERSION );
-		wp_enqueue_script( 'wcc-frontend', WCC_PLUGIN_URL . 'assets/frontend.js', array(), WCC_VERSION, true );
+		wp_enqueue_style( 'wcc-frontend' );
+		wp_enqueue_script( 'wcc-frontend' );
 		wcc_add_custom_styles();
 
 		ob_start();
@@ -114,7 +119,7 @@ class WCC_Frontend {
 			<div class="wcc-weekly-content__entries">
 				<?php foreach ( $entries as $number => $entry ) : ?>
 					<details class="wcc-weekly-entry" id="entrega-<?php echo esc_attr( $entry['id'] ); ?>"<?php echo 0 === $number ? ' open' : ''; ?>>
-						<summary class="wcc-weekly-entry__summary" tabindex="0">
+						<summary class="wcc-weekly-entry__summary">
 							<span class="wcc-weekly-entry__summary-title"><?php echo esc_html( $entry['title'] ? $entry['title'] : __( 'Entrega', 'weekly-content-concatenator' ) ); ?></span>
 							<time class="wcc-weekly-entry__summary-date" datetime="<?php echo esc_attr( $entry['date'] . 'T' . ( isset( $entry['time'] ) ? $entry['time'] : '00:00' ) ); ?>"><?php echo esc_html( wcc_format_entry_datetime( $entry ) ); ?></time>
 						</summary>
@@ -191,7 +196,7 @@ class WCC_Frontend {
 			return '';
 		}
 
-		if ( ! is_post_publicly_viewable( $post ) && ! current_user_can( 'read_post', $post_id ) ) {
+		if ( ( 'publish' !== $post->post_status || ! is_post_publicly_viewable( $post ) ) && ! current_user_can( 'read_post', $post_id ) ) {
 			return '';
 		}
 

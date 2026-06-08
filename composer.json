@@ -13,7 +13,7 @@
 		}
 	},
 	"scripts": {
-		"lint": "phpcs --standard=WordPress --extensions=php weekly-content-concatenator.php",
-		"lint:fix": "phpcbf --standard=WordPress --extensions=php weekly-content-concatenator.php"
+		"lint": "phpcs --standard=WordPress --extensions=php . --ignore=vendor/",
+		"lint:fix": "phpcbf --standard=WordPress --extensions=php . --ignore=vendor/"
 	}
 }
