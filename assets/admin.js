@@ -75,6 +75,16 @@
 		} );
 		$entries.not( ':first' ).addClass( 'is-collapsed' );
 		updateEntryCount();
+
+		// Inicializar jQuery UI Sortable para permitir arrastrar y soltar
+		$( '#wcc-entries' ).sortable( {
+			handle: '.wcc-entry__header',
+			axis: 'y',
+			placeholder: 'wcc-sortable-placeholder',
+			update: function () {
+				updateEntryCount();
+			}
+		} );
 	} );
 
 	// Add a new entry.
@@ -169,6 +179,9 @@
 				action: 'wcc_save_single_entry',
 				post_id: postId,
 				nonce: nonce,
+				active_ids: $( '#wcc-entries .wcc-entry' ).map( function () {
+					return $( this ).attr( 'data-entry-id' ) || '';
+				} ).get(),
 				settings: {
 					enabled: $( 'input[name="wcc_enabled"]' ).is( ':checked' ) ? '1' : '',
 					hide_index: $( 'input[name="wcc_hide_index"]' ).is( ':checked' ) ? '1' : '',
@@ -189,6 +202,11 @@
 					if ( ! id && response.data.entry_id ) {
 						$idInput.val( response.data.entry_id );
 						$entry.attr( 'data-entry-id', response.data.entry_id );
+					}
+
+					// Sincronizar el select de estado con el estado real del servidor
+					if ( response.data.status ) {
+						$statusSelect.val( response.data.status );
 					}
 
 					// Actualizar la meta cabecera

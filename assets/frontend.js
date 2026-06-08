@@ -22,6 +22,10 @@
 				// Open the entry if it is currently collapsed.
 				if ( 'DETAILS' === target.tagName ) {
 					target.open = true;
+					var summary = target.querySelector( 'summary' );
+					if ( summary ) {
+						summary.focus();
+					}
 				}
 
 				// Delay scrollIntoView so the browser can recalculate layout
