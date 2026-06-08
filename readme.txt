@@ -4,7 +4,7 @@ Tags: series, cursos, contenido semanal, publicaciones, shortcodes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -106,6 +106,17 @@ Sí. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del
 
 == Changelog ==
 
+= 1.5.1 =
+
+* Seguridad: Implementa validación de colores (RGB/RGBA, HSL/HSLA, HEX) robusta para evitar inyección CSS.
+* Rendimiento: Optimiza la ordenación de entregas usando array_multisort en lugar de usort con creación repetitiva de DateTimeImmutable.
+* Estabilidad: Previene condiciones de carrera y bucles de reentrada al guardar o realizar bump de posts mediante una variable estática de IDs activos.
+* Límite de Entregas: Añade límite preventivo de un máximo de 500 entregas por post para evitar sobrecarga de la base de datos.
+* Desinstalación: El desinstalador ahora elimina todos los post_meta y transients asociados creados por el plugin.
+* AJAX y Correcciones: Filtra IDs de entregas eliminadas mediante regex de UUID v4 para conservar guiones, reordena comprobaciones de seguridad e integra formato localizado de fecha en la respuesta.
+* Accesibilidad: Añade roles alert y aria-live a avisos AJAX, remueve tabindex redundante en summary y añade aria-expanded y aria-controls al botón toggle de entregas.
+* Internacionalización: Traduce avisos JS hardcodeados y utiliza _n() de WordPress para un correcto manejo de plurales.
+
 = 1.5.0 =
 
 * Agrega estado "Programada" para publicar entregas en fecha y hora usando la zona horaria configurada en WordPress.
@@ -156,6 +167,10 @@ Sí. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del
 * Actualización de fecha del post al publicar una entrega nueva.
 
 == Upgrade Notice ==
+
+= 1.5.1 =
+
+Corrige problemas de seguridad por inyección CSS, condiciones de carrera de guardado, limpia la base de datos al desinstalar, limita a 500 entregas por post y mejora la accesibilidad y traducciones.
 
 = 1.5.0 =
 
