@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Concatenador de Contenido Semanal
  * Description: Organiza entregas semanales dentro de posts normales y devuelve el post al inicio cuando se publica una entrega nueva.
- * Version: 1.4.0
+ * Version: 1.5.0
  * Author: Voz Catolica
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WCC_VERSION', '1.4.0' );
+define( 'WCC_VERSION', '1.5.0' );
 define( 'WCC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
@@ -70,10 +70,21 @@ function wcc_render_entry_fields( $entry, $index ) {
 		'id'      => '',
 		'title'   => '',
 		'date'    => current_time( 'Y-m-d' ),
+		'time'    => '00:00',
 		'status'  => 'draft',
 		'content' => '',
 	);
 	$entry    = wp_parse_args( $entry, $defaults );
+	$status_class = 'is-draft';
+	$status_label = __( 'Borrador', 'weekly-content-concatenator' );
+
+	if ( 'publish' === $entry['status'] ) {
+		$status_class = 'is-publish';
+		$status_label = __( 'Publicada', 'weekly-content-concatenator' );
+	} elseif ( 'scheduled' === $entry['status'] ) {
+		$status_class = 'is-scheduled';
+		$status_label = __( 'Programada', 'weekly-content-concatenator' );
+	}
 	?>
 	<div class="wcc-entry" data-entry-id="<?php echo esc_attr( $entry['id'] ); ?>" data-status="<?php echo esc_attr( $entry['status'] ); ?>">
 		<input type="hidden" name="wcc_entries[<?php echo esc_attr( $index ); ?>][id]" value="<?php echo esc_attr( $entry['id'] ); ?>">
@@ -82,9 +93,9 @@ function wcc_render_entry_fields( $entry, $index ) {
 				<?php echo esc_html( $entry['title'] ? $entry['title'] : __( 'Nueva entrega', 'weekly-content-concatenator' ) ); ?>
 			</strong>
 			<div class="wcc-entry__header-meta">
-				<span class="wcc-entry__header-date"><?php echo esc_html( $entry['date'] ); ?></span>
-				<span class="wcc-entry__status-badge <?php echo 'publish' === $entry['status'] ? 'is-publish' : 'is-draft'; ?>">
-					<?php echo 'publish' === $entry['status'] ? esc_html__( 'Publicada', 'weekly-content-concatenator' ) : esc_html__( 'Borrador', 'weekly-content-concatenator' ); ?>
+				<span class="wcc-entry__header-date"><?php echo esc_html( wcc_format_entry_datetime( $entry ) ); ?></span>
+				<span class="wcc-entry__status-badge <?php echo esc_attr( $status_class ); ?>">
+					<?php echo esc_html( $status_label ); ?>
 				</span>
 			</div>
 			<div>
@@ -104,9 +115,14 @@ function wcc_render_entry_fields( $entry, $index ) {
 					<input type="date" name="wcc_entries[<?php echo esc_attr( $index ); ?>][date]" value="<?php echo esc_attr( $entry['date'] ); ?>">
 				</label>
 				<label>
+					<span><?php esc_html_e( 'Hora', 'weekly-content-concatenator' ); ?></span>
+					<input type="time" name="wcc_entries[<?php echo esc_attr( $index ); ?>][time]" value="<?php echo esc_attr( $entry['time'] ); ?>">
+				</label>
+				<label>
 					<span><?php esc_html_e( 'Estado', 'weekly-content-concatenator' ); ?></span>
 					<select name="wcc_entries[<?php echo esc_attr( $index ); ?>][status]">
 						<option value="draft" <?php selected( $entry['status'], 'draft' ); ?>><?php esc_html_e( 'Borrador', 'weekly-content-concatenator' ); ?></option>
+						<option value="scheduled" <?php selected( $entry['status'], 'scheduled' ); ?>><?php esc_html_e( 'Programada', 'weekly-content-concatenator' ); ?></option>
 						<option value="publish" <?php selected( $entry['status'], 'publish' ); ?>><?php esc_html_e( 'Publicada', 'weekly-content-concatenator' ); ?></option>
 					</select>
 				</label>
@@ -203,6 +219,7 @@ function wcc_admin_assets( $hook ) {
 		array(
 			'labelPublished'   => __( 'Publicada', 'weekly-content-concatenator' ),
 			'labelDraft'       => __( 'Borrador', 'weekly-content-concatenator' ),
+			'labelScheduled'   => __( 'Programada', 'weekly-content-concatenator' ),
 			'confirmDelete'    => __( '¿Eliminar esta entrega? El cambio se aplicará al guardar el post.', 'weekly-content-concatenator' ),
 			'labelEntries'     => __( 'entregas', 'weekly-content-concatenator' ),
 			'labelPublishedOf' => __( 'publicadas', 'weekly-content-concatenator' ),
@@ -215,6 +232,149 @@ function wcc_admin_assets( $hook ) {
 	);
 }
 add_action( 'admin_enqueue_scripts', 'wcc_admin_assets' );
+
+/**
+ * Get an entry publication timestamp using the WordPress timezone.
+ *
+ * @param array $entry Entry values.
+ * @return int
+ */
+function wcc_get_entry_timestamp( $entry ) {
+	$date = isset( $entry['date'] ) ? $entry['date'] : current_time( 'Y-m-d' );
+	$time = isset( $entry['time'] ) ? $entry['time'] : '00:00';
+
+	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+		$date = current_time( 'Y-m-d' );
+	}
+
+	if ( ! preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $time ) ) {
+		$time = '00:00';
+	}
+
+	$datetime = DateTimeImmutable::createFromFormat( '!Y-m-d H:i', $date . ' ' . $time, wp_timezone() );
+
+	return $datetime ? $datetime->getTimestamp() : 0;
+}
+
+/**
+ * Format an entry date/time in the WordPress timezone.
+ *
+ * @param array $entry Entry values.
+ * @return string
+ */
+function wcc_format_entry_datetime( $entry ) {
+	$timestamp = wcc_get_entry_timestamp( $entry );
+	$format    = get_option( 'date_format' );
+
+	if ( ! empty( $entry['time'] ) && '00:00' !== $entry['time'] ) {
+		$format .= ' ' . get_option( 'time_format' );
+	}
+
+	return $timestamp ? wp_date( $format, $timestamp ) : '';
+}
+
+/**
+ * Determine whether an entry should be visible on the frontend.
+ *
+ * @param array $entry Entry values.
+ * @return bool
+ */
+function wcc_is_entry_visible( $entry ) {
+	if ( ! isset( $entry['status'] ) ) {
+		return false;
+	}
+
+	if ( 'publish' === $entry['status'] ) {
+		return true;
+	}
+
+	if ( 'scheduled' !== $entry['status'] ) {
+		return false;
+	}
+
+	return wcc_get_entry_timestamp( $entry ) <= time();
+}
+
+/**
+ * Clear WP-Cron events for entries.
+ *
+ * @param int   $post_id Post ID.
+ * @param array $entries Entries.
+ */
+function wcc_clear_scheduled_entries( $post_id, $entries ) {
+	foreach ( $entries as $entry ) {
+		if ( empty( $entry['id'] ) ) {
+			continue;
+		}
+
+		wp_clear_scheduled_hook( 'wcc_publish_scheduled_entry', array( $post_id, $entry['id'] ) );
+	}
+}
+
+/**
+ * Schedule WP-Cron events for scheduled entries.
+ *
+ * @param int   $post_id Post ID.
+ * @param array $entries Entries.
+ */
+function wcc_sync_scheduled_entries( $post_id, $entries ) {
+	wcc_clear_scheduled_entries( $post_id, $entries );
+
+	foreach ( $entries as $entry ) {
+		if ( empty( $entry['id'] ) ) {
+			continue;
+		}
+
+		if ( isset( $entry['status'] ) && 'scheduled' === $entry['status'] ) {
+			$timestamp = wcc_get_entry_timestamp( $entry );
+			if ( $timestamp > time() ) {
+				wp_schedule_single_event( $timestamp, 'wcc_publish_scheduled_entry', array( $post_id, $entry['id'] ) );
+			}
+		}
+	}
+}
+
+/**
+ * Publish a scheduled entry when its WordPress-timezone date/time arrives.
+ *
+ * @param int    $post_id  Post ID.
+ * @param string $entry_id Entry ID.
+ */
+function wcc_publish_scheduled_entry( $post_id, $entry_id ) {
+	$entries = get_post_meta( $post_id, '_wcc_entries', true );
+	$entries = is_array( $entries ) ? $entries : array();
+	$updated = false;
+
+	foreach ( $entries as $key => $entry ) {
+		if (
+			isset( $entry['id'], $entry['status'] ) &&
+			$entry_id === $entry['id'] &&
+			'scheduled' === $entry['status'] &&
+			wcc_get_entry_timestamp( $entry ) <= time()
+		) {
+			$entries[ $key ]['status'] = 'publish';
+			$updated                  = true;
+			break;
+		}
+	}
+
+	if ( ! $updated ) {
+		return;
+	}
+
+	update_post_meta( $post_id, '_wcc_entries', $entries );
+
+	if ( 'publish' === get_post_status( $post_id ) ) {
+		wp_update_post(
+			array(
+				'ID'            => $post_id,
+				'post_date'     => current_time( 'mysql' ),
+				'post_date_gmt' => current_time( 'mysql', true ),
+			)
+		);
+	}
+}
+add_action( 'wcc_publish_scheduled_entry', 'wcc_publish_scheduled_entry', 10, 2 );
 
 /**
  * Sanitize an entry submitted from the editor.
@@ -235,18 +395,35 @@ function wcc_sanitize_entry( $entry ) {
 		$date = $entry['date'];
 	}
 
+	$time = '00:00';
+	if ( isset( $entry['time'] ) && preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $entry['time'] ) ) {
+		$time = $entry['time'];
+	}
+
 	$content = isset( $entry['content'] ) ? $entry['content'] : '';
 	if ( ! current_user_can( 'unfiltered_html' ) ) {
 		$content = wp_kses_post( $content );
 	}
 
-	return array(
+	$status = isset( $entry['status'] ) ? sanitize_key( $entry['status'] ) : 'draft';
+	if ( ! in_array( $status, array( 'draft', 'scheduled', 'publish' ), true ) ) {
+		$status = 'draft';
+	}
+
+	$sanitized = array(
 		'id'      => $id ? $id : wp_generate_uuid4(),
 		'title'   => isset( $entry['title'] ) ? sanitize_text_field( $entry['title'] ) : '',
 		'date'    => $date,
-		'status'  => isset( $entry['status'] ) && 'publish' === $entry['status'] ? 'publish' : 'draft',
+		'time'    => $time,
+		'status'  => $status,
 		'content' => $content,
 	);
+
+	if ( 'scheduled' === $sanitized['status'] && wcc_get_entry_timestamp( $sanitized ) <= time() ) {
+		$sanitized['status'] = 'publish';
+	}
+
+	return $sanitized;
 }
 
 /**
@@ -313,6 +490,8 @@ function wcc_save_post( $post_id ) {
 	update_post_meta( $post_id, '_wcc_enabled', isset( $_POST['wcc_enabled'] ) ? '1' : '0' );
 	update_post_meta( $post_id, '_wcc_hide_index', isset( $_POST['wcc_hide_index'] ) ? '1' : '0' );
 	update_post_meta( $post_id, '_wcc_order', 'asc' === $order ? 'asc' : 'desc' );
+	wcc_clear_scheduled_entries( $post_id, $old_entries );
+	wcc_sync_scheduled_entries( $post_id, $entries );
 
 	if ( $has_new && 'publish' === get_post_status( $post_id ) ) {
 		$is_bumping = true;
@@ -357,7 +536,7 @@ function wcc_sort_entries( $entries, $order ) {
 	usort(
 		$entries,
 		function ( $a, $b ) use ( $order ) {
-			$comparison = strcmp( $a['date'], $b['date'] );
+			$comparison = wcc_get_entry_timestamp( $a ) <=> wcc_get_entry_timestamp( $b );
 			return 'asc' === $order ? $comparison : -$comparison;
 		}
 	);
@@ -396,7 +575,7 @@ function wcc_get_entries_html( $post_id, $override_hide_index = null ) {
 		array_filter(
 			$entries,
 			function ( $entry ) {
-				return isset( $entry['status'] ) && 'publish' === $entry['status'];
+				return wcc_is_entry_visible( $entry );
 			}
 		)
 	);
@@ -424,11 +603,11 @@ function wcc_get_entries_html( $post_id, $override_hide_index = null ) {
 			<nav class="wcc-weekly-content__index" aria-label="<?php esc_attr_e( 'Índice de entregas', 'weekly-content-concatenator' ); ?>">
 				<details class="wcc-index-toggle" open>
 					<summary><?php echo esc_html( sprintf( __( 'Índice de entregas (%d)', 'weekly-content-concatenator' ), count( $entries ) ) ); ?></summary>
-					<ol>
+					<ul>
 						<?php foreach ( $entries as $number => $entry ) : ?>
-							<li><a href="#entrega-<?php echo esc_attr( $entry['id'] ); ?>"><?php echo esc_html( $entry['title'] ? $entry['title'] : sprintf( __( 'Entrega %d', 'weekly-content-concatenator' ), $number + 1 ) ); ?></a></li>
+							<li><a href="#entrega-<?php echo esc_attr( $entry['id'] ); ?>"><?php echo esc_html( $entry['title'] ? $entry['title'] : __( 'Entrega', 'weekly-content-concatenator' ) ); ?></a></li>
 						<?php endforeach; ?>
-					</ol>
+					</ul>
 				</details>
 			</nav>
 		<?php endif; ?>
@@ -436,9 +615,8 @@ function wcc_get_entries_html( $post_id, $override_hide_index = null ) {
 			<?php foreach ( $entries as $number => $entry ) : ?>
 				<details class="wcc-weekly-entry" id="entrega-<?php echo esc_attr( $entry['id'] ); ?>"<?php echo 0 === $number ? ' open' : ''; ?>>
 					<summary class="wcc-weekly-entry__summary">
-						<p class="wcc-weekly-entry__label"><?php echo esc_html( (string) ( $number + 1 ) ); ?></p>
-						<span class="wcc-weekly-entry__summary-title"><?php echo esc_html( $entry['title'] ? $entry['title'] : sprintf( __( 'Entrega %d', 'weekly-content-concatenator' ), $number + 1 ) ); ?></span>
-						<time class="wcc-weekly-entry__summary-date" datetime="<?php echo esc_attr( $entry['date'] ); ?>"><?php echo esc_html( wp_date( get_option( 'date_format' ), strtotime( $entry['date'] ) ) ); ?></time>
+						<span class="wcc-weekly-entry__summary-title"><?php echo esc_html( $entry['title'] ? $entry['title'] : __( 'Entrega', 'weekly-content-concatenator' ) ); ?></span>
+						<time class="wcc-weekly-entry__summary-date" datetime="<?php echo esc_attr( $entry['date'] . 'T' . ( isset( $entry['time'] ) ? $entry['time'] : '00:00' ) ); ?>"><?php echo esc_html( wcc_format_entry_datetime( $entry ) ); ?></time>
 					</summary>
 					<div class="wcc-weekly-entry__content">
 						<?php
@@ -560,6 +738,8 @@ function wcc_ajax_save_single_entry() {
 		}
 	}
 
+	$old_entries = $entries;
+
 	foreach ( $entries as $key => $existing_entry ) {
 		if ( isset( $existing_entry['id'] ) && $existing_entry['id'] === $sanitized_entry['id'] ) {
 			$entries[ $key ] = $sanitized_entry;
@@ -576,6 +756,8 @@ function wcc_ajax_save_single_entry() {
 	}
 
 	update_post_meta( $post_id, '_wcc_entries', $entries );
+	wcc_clear_scheduled_entries( $post_id, $old_entries );
+	wcc_sync_scheduled_entries( $post_id, $entries );
 
 	if ( isset( $_POST['settings'] ) && is_array( $_POST['settings'] ) ) {
 		$settings = wp_unslash( $_POST['settings'] );

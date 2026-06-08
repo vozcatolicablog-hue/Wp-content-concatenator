@@ -69,6 +69,11 @@
 	color: #7a5900;
 }
 
+.wcc-entry__status-badge.is-scheduled {
+	background: #e7f0ff;
+	color: #135e96;
+}
+
 /* Action buttons container */
 .wcc-entry__header > div:last-child {
 	display: flex;
@@ -97,7 +102,7 @@
 /* Three-column grid inside the body: title | date | status */
 .wcc-entry__row {
 	display: grid;
-	grid-template-columns: 1fr 180px 150px;
+	grid-template-columns: 1fr 170px 120px 150px;
 	gap: 14px;
 	margin-bottom: 14px;
 }
@@ -126,6 +131,10 @@
 
 .wcc-entry[data-status="draft"] .wcc-entry__header {
 	border-left: 3px solid #dba617;
+}
+
+.wcc-entry[data-status="scheduled"] .wcc-entry__header {
+	border-left: 3px solid #2271b1;
 }
 
 /* Entry count shown next to the "Añadir entrega" button */

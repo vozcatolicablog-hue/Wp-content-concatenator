@@ -4,7 +4,7 @@ Tags: series, cursos, contenido semanal, publicaciones, shortcodes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,7 +20,8 @@ Cada entrega permite definir:
 
 * Titulo.
 * Fecha.
-* Estado: borrador o publicada.
+* Hora, interpretada segun la zona horaria configurada en WordPress.
+* Estado: borrador, programada o publicada.
 * Contenido compatible con HTML permitido y shortcodes.
 
 Las entregas publicadas pueden mostrarse automaticamente al final del post o insertarse manualmente con el shortcode `[contenido_semanal]`.
@@ -31,6 +32,7 @@ Cuando guardas una entrega nueva con estado "Publicada" dentro de un post ya pub
 
 * Panel de entregas semanales en posts normales.
 * Entregas en borrador o publicadas.
+* Entregas programadas con fecha y hora segun la zona horaria de WordPress.
 * Visualizacion tipo acordeon con elementos nativos `<details>` y `<summary>`.
 * Indice colapsable enlazado a cada entrega.
 * Orden visible configurable: mas recientes primero o mas antiguas primero.
@@ -104,6 +106,14 @@ Si. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del 
 
 == Changelog ==
 
+= 1.5.0 =
+
+* Agrega estado "Programada" para publicar entregas en fecha y hora usando la zona horaria configurada en WordPress.
+* Programa eventos de WP-Cron para publicar automaticamente las entregas cuando llega su horario.
+* Quita el numero visible de cada acordeon en el frontend.
+* Agrega campo de hora al panel de entregas.
+* Actualiza el orden y visualizacion de fechas para considerar fecha y hora.
+
 = 1.4.0 =
 
 * Agrega un panel de configuracion en Ajustes > Concatenador Semanal para personalizar colores y estilos.
@@ -146,6 +156,10 @@ Si. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del 
 * Actualizacion de fecha del post al publicar una entrega nueva.
 
 == Upgrade Notice ==
+
+= 1.5.0 =
+
+Actualiza para programar publicaciones de entregas con la zona horaria de WordPress y remover el numero visible de los acordeones.
 
 = 1.4.0 =
 

@@ -5,6 +5,7 @@
 	var wccAdmin = window.wccAdmin || {
 		labelPublished: 'Publicada',
 		labelDraft: 'Borrador',
+		labelScheduled: 'Programada',
 		confirmDelete: '¿Eliminar esta entrega? El cambio se aplicará al guardar el post.',
 		labelEntries: 'entregas',
 		labelPublishedOf: 'publicadas',
@@ -27,19 +28,22 @@
 	function updateHeaderMeta( $entry ) {
 		var status  = $entry.find( 'select[name*="[status]"]' ).val();
 		var date    = $entry.find( 'input[type="date"]' ).val() || '';
+		var time    = $entry.find( 'input[type="time"]' ).val() || '';
 		var $badge  = $entry.find( '.wcc-entry__status-badge' );
 		var $dateEl = $entry.find( '.wcc-entry__header-date' );
 
 		$entry.attr( 'data-status', status );
-		$badge.removeClass( 'is-draft is-publish' );
+		$badge.removeClass( 'is-draft is-publish is-scheduled' );
 
 		if ( status === 'publish' ) {
 			$badge.addClass( 'is-publish' ).text( wccAdmin.labelPublished );
+		} else if ( status === 'scheduled' ) {
+			$badge.addClass( 'is-scheduled' ).text( wccAdmin.labelScheduled );
 		} else {
 			$badge.addClass( 'is-draft' ).text( wccAdmin.labelDraft );
 		}
 
-		$dateEl.text( date );
+		$dateEl.text( time ? date + ' ' + time : date );
 	}
 
 	/**
@@ -112,8 +116,8 @@
 		updateEntryCount();
 	} );
 
-	// A4: Sync date label when the date input changes.
-	$( '#wcc-entries' ).on( 'change', 'input[type="date"]', function () {
+	// A4: Sync date label when the date or time input changes.
+	$( '#wcc-entries' ).on( 'change', 'input[type="date"], input[type="time"]', function () {
 		updateHeaderMeta( $( this ).closest( '.wcc-entry' ) );
 	} );
 
@@ -129,11 +133,13 @@
 		var $idInput      = $entry.find( 'input[name*="[id]"]' );
 		var $titleInput   = $entry.find( '.wcc-title' );
 		var $dateInput    = $entry.find( 'input[type="date"]' );
+		var $timeInput    = $entry.find( 'input[type="time"]' );
 		var $statusSelect = $entry.find( 'select[name*="[status]"]' );
 		var $contentInput = $entry.find( '.wcc-content' );
 
 		var title   = $titleInput.val() || '';
 		var date    = $dateInput.val() || '';
+		var time    = $timeInput.val() || '';
 		var status  = $statusSelect.val() || 'draft';
 		var content = $contentInput.val() || '';
 		var id      = $idInput.val() || '';
@@ -172,6 +178,7 @@
 					id: id,
 					title: title,
 					date: date,
+					time: time,
 					status: status,
 					content: content
 				}
