@@ -137,7 +137,7 @@ class WCC_Frontend {
 							if ( 0 !== $number ) {
 								$entry_content = self::defer_iframes( $entry_content );
 							}
-							echo wp_kses_post( $entry_content );
+							echo $entry_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 							?>
 						</div>
 					</details>

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Concatenador de Contenido Semanal
  * Description: Organiza entregas semanales dentro de posts normales y devuelve el post al inicio cuando se publica una entrega nueva.
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: Voz Catolica
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WCC_VERSION', '2.0.0' );
+define( 'WCC_VERSION', '2.0.1' );
 define( 'WCC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 // Cargar clases modulares

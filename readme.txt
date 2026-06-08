@@ -4,7 +4,7 @@ Tags: series, cursos, contenido semanal, publicaciones, shortcodes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 2.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -106,6 +106,14 @@ Sí. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del
 
 == Changelog ==
 
+= 2.0.1 =
+
+* Corrección: Corrige un problema que impedía la visualización de iframes y elementos embed de video en el frontend al eliminar el filtrado incorrecto de wp_kses_post sobre el contenido ya procesado.
+
+= 2.0.0 =
+
+* Versión 2.0.0: Actualización mayor del plugin.
+
 = 1.5.1 =
 
 * Seguridad: Implementa validación de colores (RGB/RGBA, HSL/HSLA, HEX) robusta para evitar inyección CSS.
@@ -167,6 +175,14 @@ Sí. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del
 * Actualización de fecha del post al publicar una entrega nueva.
 
 == Upgrade Notice ==
+
+= 2.0.1 =
+
+Corrige la visualización de iframes y embeds de video (como videos de YouTube) en el frontend.
+
+= 2.0.0 =
+
+Lanzamiento de la versión 2.0.0.
 
 = 1.5.1 =
 
