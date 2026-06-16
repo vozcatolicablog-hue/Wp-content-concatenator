@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Concatenador de Contenido Semanal
  * Description: Organiza entregas semanales dentro de posts normales y devuelve el post al inicio cuando se publica una entrega nueva.
- * Version: 2.0.1
+ * Version: 2.0.2
  * Author: Voz Catolica
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WCC_VERSION', '2.0.1' );
+define( 'WCC_VERSION', '2.0.2' );
 define( 'WCC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 // Cargar clases modulares
@@ -44,14 +44,14 @@ add_action( 'init', 'wcc_load_textdomain' );
  */
 function wcc_get_entry_timestamp( $entry ) {
 	$date = isset( $entry['date'] ) ? $entry['date'] : current_time( 'Y-m-d' );
-	$time = isset( $entry['time'] ) ? $entry['time'] : '00:00';
+	$time = isset( $entry['time'] ) ? $entry['time'] : current_time( 'H:i' );
 
 	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
 		$date = current_time( 'Y-m-d' );
 	}
 
 	if ( ! preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $time ) ) {
-		$time = '00:00';
+		$time = current_time( 'H:i' );
 	}
 
 	$datetime = DateTimeImmutable::createFromFormat( '!Y-m-d H:i', $date . ' ' . $time, wp_timezone() );

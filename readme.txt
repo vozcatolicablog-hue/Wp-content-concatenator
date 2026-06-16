@@ -4,7 +4,7 @@ Tags: series, cursos, contenido semanal, publicaciones, shortcodes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -106,6 +106,10 @@ Sí. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del
 
 == Changelog ==
 
+= 2.0.2 =
+
+* Corrección: La hora por defecto de una entrega ahora usa la hora actual del sitio (según la zona horaria de WordPress) en lugar de medianoche. Esto evita que el post aparezca con una fecha un día anterior en feeds, sitemaps, el editor de bloques y la indexación, ya que la medianoche local cae en el día previo en UTC para zonas horarias positivas.
+
 = 2.0.1 =
 
 * Corrección: Corrige un problema que impedía la visualización de iframes y elementos embed de video en el frontend al eliminar el filtrado incorrecto de wp_kses_post sobre el contenido ya procesado.
@@ -175,6 +179,10 @@ Sí. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del
 * Actualización de fecha del post al publicar una entrega nueva.
 
 == Upgrade Notice ==
+
+= 2.0.2 =
+
+Corrige el desfase de un día en la fecha del post usando la hora actual del sitio en vez de medianoche al crear entregas.
 
 = 2.0.1 =
 

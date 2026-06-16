@@ -90,7 +90,7 @@ class WCC_Admin {
 			'id'      => '',
 			'title'   => '',
 			'date'    => current_time( 'Y-m-d' ),
-			'time'    => '00:00',
+			'time'    => current_time( 'H:i' ),
 			'status'  => 'draft',
 			'content' => '',
 		);
@@ -275,7 +275,7 @@ class WCC_Admin {
 			$date = $entry['date'];
 		}
 
-		$time = '00:00';
+		$time = current_time( 'H:i' );
 		if ( isset( $entry['time'] ) && preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $entry['time'] ) ) {
 			$time = $entry['time'];
 		}
