@@ -1,22 +1,32 @@
+/* global jQuery, ajaxurl, window, document */
 ( function ( $ ) {
 	'use strict';
 
 	// Safe fallback for localized variables
-	var wccAdmin = window.wccAdmin || {
-		labelPublished: 'Publicada',
-		labelDraft: 'Borrador',
-		labelScheduled: 'Programada',
-		confirmDelete: '¿Eliminar esta entrega? El cambio se aplicará al guardar el post.',
-		labelEntries: 'entregas',
-		labelPublishedOf: 'publicadas',
-		noticeSaved: 'Entrega guardada correctamente.',
-		noticeBumped: 'Entrega publicada: la fecha del post fue actualizada y el post volvió al inicio.',
-		errorEmpty: 'El título y el contenido no pueden estar vacíos.',
-		errorPostId: 'No se pudo obtener el ID del post.',
-		errorServer: 'Ocurrió un error en la comunicación con el servidor.'
-	};
+	var wccAdmin = $.extend(
+		{
+			labelPublished: 'Publicada',
+			labelDraft: 'Borrador',
+			labelScheduled: 'Programada',
+			confirmDelete: '¿Eliminar esta entrega? El cambio se aplicará al guardar el post.',
+			labelNewEntry: 'Nueva entrega',
+			labelEntriesOne: '%d entrega',
+			labelEntriesMany: '%d entregas',
+			labelPublishedOne: '%d publicada',
+			labelPublishedMany: '%d publicadas',
+			labelSaving: 'Guardando…',
+			labelSaved: 'Guardada',
+			noticeSaved: 'Entrega guardada correctamente.',
+			noticeBumped: 'Entrega publicada: la fecha del post fue actualizada y el post volvió al inicio.',
+			errorEmpty: 'El título y el contenido no pueden estar vacíos.',
+			errorPostId: 'No se pudo obtener el ID del post.',
+			errorServer: 'Ocurrió un error en la comunicación con el servidor.',
+			errorUnknown: 'Error desconocido'
+		},
+		window.wccAdmin || {}
+	);
 
-	// B1: Module-level counter seeded with timestamp – never collides even after deletions.
+	// Module-level counter seeded with timestamp – never collides even after deletions.
 	var entryCounter = Date.now();
 
 	function getNextIndex() {
@@ -24,12 +34,24 @@
 	}
 
 	/**
-	 * Sync the status badge and date shown in the collapsed header.
+	 * Fill a "%d" template with a number.
 	 *
-	 * @param {jQuery} $entry        The .wcc-entry element to update.
-	 * @param {string} formattedDate Optional server-formatted date string.
+	 * @param {string} tpl Template with %d.
+	 * @param {number} n   Number.
+	 * @return {string} Text.
 	 */
-	function updateHeaderMeta( $entry, formattedDate ) {
+	function plural( tpl, n ) {
+		return tpl.replace( '%d', n );
+	}
+
+	/**
+	 * Sync the status badge (and optionally the date) shown in the collapsed header.
+	 *
+	 * @param {jQuery}  $entry        The .wcc-entry element to update.
+	 * @param {string}  formattedDate Optional server-formatted date string.
+	 * @param {boolean} keepDate      Keep the date text already rendered by PHP (page load).
+	 */
+	function updateHeaderMeta( $entry, formattedDate, keepDate ) {
 		var status  = $entry.find( 'select[name*="[status]"]' ).val();
 		var date    = $entry.find( 'input[type="date"]' ).val() || '';
 		var time    = $entry.find( 'input[type="time"]' ).val() || '';
@@ -49,7 +71,7 @@
 
 		if ( formattedDate ) {
 			$dateEl.text( formattedDate );
-		} else {
+		} else if ( ! keepDate ) {
 			$dateEl.text( time ? date + ' ' + time : date );
 		}
 	}
@@ -61,7 +83,8 @@
 		var total     = $( '#wcc-entries .wcc-entry' ).length;
 		var published = $( '#wcc-entries .wcc-entry[data-status="publish"]' ).length;
 		$( '#wcc-entry-count' ).text(
-			'(' + total + ' ' + wccAdmin.labelEntries + ', ' + published + ' ' + wccAdmin.labelPublishedOf + ')'
+			'(' + plural( 1 === total ? wccAdmin.labelEntriesOne : wccAdmin.labelEntriesMany, total ) +
+			', ' + plural( 1 === published ? wccAdmin.labelPublishedOne : wccAdmin.labelPublishedMany, published ) + ')'
 		);
 	}
 
@@ -69,7 +92,7 @@
 		var noticeType = type || 'success';
 		var $notice = $( '<div />', {
 			class: 'notice notice-' + noticeType + ' is-dismissible wcc-ajax-notice',
-			role: 'alert',
+			role: 'error' === noticeType ? 'alert' : 'status',
 			'aria-live': 'polite'
 		} ).append( $( '<p />' ).text( message ) );
 
@@ -77,11 +100,12 @@
 		$( '#wcc_weekly_content .inside' ).prepend( $notice );
 	}
 
-	// A1: On page load collapse all entries except the first, and sync badges.
+	// On page load collapse all entries except the first, and sync badges (the date text comes
+	// already formatted by PHP: keep it).
 	$( function () {
 		var $entries = $( '#wcc-entries .wcc-entry' );
 		$entries.each( function () {
-			updateHeaderMeta( $( this ) );
+			updateHeaderMeta( $( this ), '', true );
 		} );
 		$entries.not( ':first' ).addClass( 'is-collapsed' );
 		$entries.each( function () {
@@ -103,7 +127,7 @@
 
 	// Add a new entry.
 	$( '#wcc-add-entry' ).on( 'click', function () {
-		// B3: Collapse all existing entries before inserting the new one.
+		// Collapse all existing entries before inserting the new one.
 		$( '#wcc-entries .wcc-entry' ).addClass( 'is-collapsed' ).find( '.wcc-toggle-entry' ).attr( 'aria-expanded', 'false' );
 
 		var html = $( '#tmpl-wcc-entry' ).html().replace( /__INDEX__/g, getNextIndex() );
@@ -134,17 +158,17 @@
 
 	// Keep heading text in sync while the user types.
 	$( '#wcc-entries' ).on( 'input', '.wcc-title', function () {
-		var title = $( this ).val() || 'Nueva entrega';
+		var title = $( this ).val() || wccAdmin.labelNewEntry;
 		$( this ).closest( '.wcc-entry' ).find( '.wcc-entry__heading' ).text( title );
 	} );
 
-	// A4: Sync status badge when the status select changes.
+	// Sync status badge when the status select changes.
 	$( '#wcc-entries' ).on( 'change', 'select[name*="[status]"]', function () {
 		updateHeaderMeta( $( this ).closest( '.wcc-entry' ) );
 		updateEntryCount();
 	} );
 
-	// A4: Sync date label when the date or time input changes.
+	// Sync date label when the date or time input changes.
 	$( '#wcc-entries' ).on( 'change', 'input[type="date"], input[type="time"]', function () {
 		updateHeaderMeta( $( this ).closest( '.wcc-entry' ) );
 	} );
@@ -173,7 +197,8 @@
 		var id      = $idInput.val() || '';
 
 		if ( ! title && ! content.trim() ) {
-			alert( wccAdmin.errorEmpty );
+			showNotice( wccAdmin.errorEmpty, 'error' );
+			$titleInput.trigger( 'focus' );
 			return;
 		}
 
@@ -181,7 +206,7 @@
 		var nonce  = $( 'input[name="wcc_nonce"]' ).val();
 
 		if ( ! postId ) {
-			alert( wccAdmin.errorPostId );
+			showNotice( wccAdmin.errorPostId, 'error' );
 			return;
 		}
 
@@ -203,7 +228,8 @@
 				settings: {
 					enabled: $( 'input[name="wcc_enabled"]' ).is( ':checked' ) ? '1' : '',
 					hide_index: $( 'input[name="wcc_hide_index"]' ).is( ':checked' ) ? '1' : '',
-					order: $( 'select[name="wcc_order"]' ).val() || 'desc'
+					order: $( 'select[name="wcc_order"]' ).val() || 'desc',
+					title: $( 'input[name="wcc_title"]' ).val() || ''
 				},
 				entry: {
 					id: id,
@@ -229,6 +255,7 @@
 
 					// Actualizar la meta cabecera
 					updateHeaderMeta( $entry, response.data.formatted_date );
+					updateEntryCount();
 
 					// Feedback visual exitoso
 					$button.text( wccAdmin.labelSaved ).addClass( 'wcc-saved' );
@@ -240,13 +267,11 @@
 						$button.prop( 'disabled', false ).text( originalText ).removeClass( 'wcc-saved' );
 					}, 2000 );
 				} else {
-					alert( 'Error al guardar: ' + ( response.data.message || 'Error desconocido' ) );
-					showNotice( response.data.message || 'Error desconocido', 'error' );
+					showNotice( ( response.data && response.data.message ) || wccAdmin.errorUnknown, 'error' );
 					$button.prop( 'disabled', false ).text( originalText );
 				}
 			},
 			error: function () {
-				alert( wccAdmin.errorServer );
 				showNotice( wccAdmin.errorServer, 'error' );
 				$button.prop( 'disabled', false ).text( originalText );
 			}

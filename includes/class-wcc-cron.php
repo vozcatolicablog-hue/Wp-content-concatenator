@@ -99,7 +99,7 @@ class WCC_Cron {
 		update_post_meta( $post_id, '_wcc_entries', $entries );
 
 		if ( 'publish' === get_post_status( $post_id ) ) {
-			$bump_timestamp = $scheduled_timestamp ? $scheduled_timestamp : time();
+			$bump_timestamp = min( $scheduled_timestamp ? $scheduled_timestamp : time(), time() );
 			wp_update_post(
 				array(
 					'ID'            => $post_id,
@@ -108,6 +108,9 @@ class WCC_Cron {
 				)
 			);
 		}
+
+		// La página cacheada seguiría sin la entrega nueva hasta la próxima purga.
+		wcc_purge_post_cache( $post_id );
 	}
 
 	/**

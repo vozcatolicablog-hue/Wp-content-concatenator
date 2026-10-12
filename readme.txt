@@ -4,7 +4,7 @@ Tags: series, cursos, contenido semanal, publicaciones, shortcodes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.0.2
+Stable tag: 2.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -71,6 +71,20 @@ Para forzar que el índice se oculte o se muestre desde el shortcode:
 
 `[contenido_semanal hide_index="false"]`
 
+Para cambiar el título y el antetítulo de la sección desde el shortcode (también se puede fijar el título por post desde el panel «Entregas semanales»):
+
+`[contenido_semanal title="Episodios" ante="Podcast"]`
+
+== Apariencia ==
+
+Desde la versión 2.1.0 las entregas se muestran con el sistema de diseño de Voz Católica: antetítulo, título en Cormorant Garamond, índice en tarjeta pergamino, número de cada entrega en oro y fecha breve («7 oct 2026»). Los colores leen las variables globales del sitio (`--azul`, `--pergamino`, `--tinta`…) y, si no existen, usan los valores del sistema.
+
+Si el título de una entrega empieza por un número («03 - Título»), ese número se muestra como numeral de la entrega y se quita del título; si no, se numera por orden cronológico.
+
+En Ajustes > Concatenador Semanal se puede desactivar el sistema de diseño para volver a los colores personalizados.
+
+Filtros disponibles: `wcc_section_title`, `wcc_section_ante`, `wcc_entry_date_format`, `wcc_show_new_badge`, `wcc_entry_content`; acción `wcc_entries_updated`.
+
 == Comportamiento de la fecha ==
 
 El post vuelve al inicio solo cuando el plugin detecta por primera vez una entrega publicada.
@@ -105,6 +119,33 @@ Sí. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del
 2. Visualización frontend en acordeón con índice de entregas.
 
 == Changelog ==
+
+= 2.1.1 =
+
+* Corrección: el contenido de cada entrega ya no lleva sangría izquierda y los vídeos incrustados (YouTube, Vimeo) ocupan todo el ancho de la columna a 16:9, en vez de quedar recortados o con bandas.
+
+= 2.1.0 =
+
+* Diseño: la sección de entregas adopta el sistema de diseño de Voz Católica (tokens del Kit con reserva, Cormorant/Inter, índice en tarjeta, numeral en oro, fecha breve, insignia «Nueva» en la última entrega de menos de 7 días, chevrones, foco visible, movimiento reducido). Las clases del marcado anterior se conservan.
+* Nuevo: ajuste «Usar el sistema de diseño» (activo por defecto); los colores personalizados solo se aplican si se desactiva.
+* Nuevo: título de la sección configurable por post y atributos `title` y `ante` en el shortcode.
+* Nuevo: el índice de más de 10 entregas sale plegado y a dos columnas; los enlaces del índice y los enlaces compartidos con `#entrega-…` abren la entrega.
+* Corrección: una entrega guardada como «Publicada» con fecha y hora futuras pasaba al post a «Programado» (desaparecía del sitio); ahora se guarda como programada y el bump nunca usa una fecha futura.
+* Corrección: con visualización automática y shortcode a la vez, las entregas podían salir dos veces (la comprobación del shortcode se hacía sobre el contenido ya procesado).
+* Corrección: las entregas con la misma fecha y hora quedaban en orden arbitrario; ahora conservan el orden del panel.
+* Corrección: al guardar una entrega por AJAX (sin bump) y al publicarla por WP-Cron no se invalidaba la caché de página.
+* Corrección: la carga diferida de iframes podía duplicar `data-` en iframes ya diferidos por otro plugin.
+* Corrección: la desinstalación solo limpiaba los posts publicados.
+* Admin: la fecha de la cabecera de cada entrega ya no se sobrescribe al cargar; avisos sin `alert()`; cadenas traducibles con plural; `role="status"` / `role="alert"` según el tipo de aviso.
+* Rendimiento: el script público se carga con `defer`.
+
+= 2.0.3 =
+
+* Corrección: al guardar una entrega individual por AJAX después de eliminar (en el navegador) todas las demás entregas, las entregas eliminadas ya no reaparecen al guardar.
+* Corrección: se elimina un doble "unslash" redundante sobre el ID de la entrega.
+* Seguridad: se valida el nonce antes que los permisos en el guardado individual por AJAX, y se endurece la validación del formato de UUID de las entregas.
+* Mejora: se limita la longitud máxima del título (500 caracteres) y del contenido (100.000 caracteres) de una entrega.
+* Mejora: la limpieza de metadatos en la desinstalación ahora se procesa en bloques para evitar problemas de memoria en sitios con muchos posts.
 
 = 2.0.2 =
 
@@ -179,6 +220,10 @@ Sí. Puedes ocultarlo desde el panel del post o con el atributo `hide_index` del
 * Actualización de fecha del post al publicar una entrega nueva.
 
 == Upgrade Notice ==
+
+= 2.1.0 =
+
+Las entregas pasan al sistema de diseño de Voz Católica. Si usabas colores personalizados, se ignoran hasta que desactives «Usar el sistema de diseño» en Ajustes > Concatenador Semanal.
 
 = 2.0.2 =
 

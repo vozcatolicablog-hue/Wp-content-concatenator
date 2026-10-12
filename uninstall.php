@@ -1,6 +1,6 @@
 <?php
 /**
- * Script de desinstalación. Limpia opciones de configuración al eliminar el plugin.
+ * Script de desinstalación. Limpia opciones, metadatos y eventos programados al eliminar el plugin.
  *
  * @package WeeklyContentConcatenator
  */
@@ -9,19 +9,24 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-// Borrar post_meta de todos los posts
-$post_ids = get_posts(
-	array(
-		'post_type'      => 'post',
-		'posts_per_page' => -1,
-		'fields'         => 'ids',
-		'meta_key'       => '_wcc_entries',
-	)
-);
+// Requerir wcc-cron para limpiar eventos programados
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-wcc-cron.php';
 
-if ( is_array( $post_ids ) && ! empty( $post_ids ) ) {
-	// Requerir wcc-cron para limpiar eventos programados
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-wcc-cron.php';
+// Borrar post_meta de todos los posts (en cualquier estado, también borradores y privados), en bloques
+// para no agotar memoria en sitios grandes.
+$batch_size = 200;
+do {
+	$post_ids = get_posts(
+		array(
+			'post_type'        => 'post',
+			'post_status'      => array_keys( get_post_stati() ),
+			'posts_per_page'   => $batch_size,
+			'fields'           => 'ids',
+			'meta_key'         => '_wcc_entries', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+			'suppress_filters' => true,
+			'no_found_rows'    => true,
+		)
+	);
 
 	foreach ( $post_ids as $post_id ) {
 		$entries = get_post_meta( $post_id, '_wcc_entries', true );
@@ -32,8 +37,9 @@ if ( is_array( $post_ids ) && ! empty( $post_ids ) ) {
 		delete_post_meta( $post_id, '_wcc_enabled' );
 		delete_post_meta( $post_id, '_wcc_order' );
 		delete_post_meta( $post_id, '_wcc_hide_index' );
+		delete_post_meta( $post_id, '_wcc_title' );
 	}
-}
+} while ( count( $post_ids ) === $batch_size );
 
 // Borrar la opción global de estilos configurada por el plugin
 delete_option( 'wcc_styles' );

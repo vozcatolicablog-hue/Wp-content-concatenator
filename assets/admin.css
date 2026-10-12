@@ -12,6 +12,11 @@
 	border: 1px solid #dcdcde;
 }
 
+.wcc-settings__title input {
+	min-width: 260px;
+	margin-left: 4px;
+}
+
 .wcc-entry {
 	margin: 16px 0;
 	background: #fff;

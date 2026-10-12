@@ -12,11 +12,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WCC_Admin {
 
 	/**
+	 * Longitud máxima permitida para el título de una entrega.
+	 */
+	const MAX_TITLE_LENGTH = 500;
+
+	/**
+	 * Longitud máxima permitida (en caracteres) para el contenido de una entrega.
+	 */
+	const MAX_CONTENT_LENGTH = 100000;
+
+	/**
 	 * IDs de posts que están en proceso de actualización de fecha.
 	 *
 	 * @var array
 	 */
 	private static $bumping_ids = array();
+
+	/**
+	 * Comprueba si una cadena tiene el formato estándar de un UUID v4-like.
+	 *
+	 * @param string $id Cadena a validar.
+	 * @return bool
+	 */
+	private static function is_valid_entry_id( $id ) {
+		return (bool) preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id );
+	}
 
 	/**
 	 * Constructor. Registra los hooks de administración.
@@ -159,6 +179,7 @@ class WCC_Admin {
 		$enabled    = (bool) get_post_meta( $post->ID, '_wcc_enabled', true );
 		$hide_index = (bool) get_post_meta( $post->ID, '_wcc_hide_index', true );
 		$order      = get_post_meta( $post->ID, '_wcc_order', true );
+		$title      = (string) get_post_meta( $post->ID, '_wcc_title', true );
 		$entries    = get_post_meta( $post->ID, '_wcc_entries', true );
 
 		$order   = in_array( $order, array( 'asc', 'desc' ), true ) ? $order : 'desc';
@@ -181,6 +202,10 @@ class WCC_Admin {
 					<option value="desc" <?php selected( $order, 'desc' ); ?>><?php esc_html_e( 'Más recientes primero', 'weekly-content-concatenator' ); ?></option>
 					<option value="asc" <?php selected( $order, 'asc' ); ?>><?php esc_html_e( 'Más antiguas primero', 'weekly-content-concatenator' ); ?></option>
 				</select>
+			</label>
+			<label class="wcc-settings__title">
+				<?php esc_html_e( 'Título de la sección:', 'weekly-content-concatenator' ); ?>
+				<input type="text" name="wcc_title" value="<?php echo esc_attr( $title ); ?>" placeholder="<?php esc_attr_e( 'Contenido de la serie', 'weekly-content-concatenator' ); ?>" maxlength="120">
 			</label>
 		</div>
 		<p class="description">
@@ -240,11 +265,18 @@ class WCC_Admin {
 				'labelDraft'       => __( 'Borrador', 'weekly-content-concatenator' ),
 				'labelScheduled'   => __( 'Programada', 'weekly-content-concatenator' ),
 				'confirmDelete'    => __( '¿Eliminar esta entrega? El cambio se aplicará al guardar el post.', 'weekly-content-concatenator' ),
-				'labelEntries'     => __( 'entregas', 'weekly-content-concatenator' ),
-				'labelPublishedOf' => __( 'publicadas', 'weekly-content-concatenator' ),
+				'labelNewEntry'    => __( 'Nueva entrega', 'weekly-content-concatenator' ),
+				/* translators: %d: número de entregas */
+				'labelEntriesOne'  => __( '%d entrega', 'weekly-content-concatenator' ),
+				/* translators: %d: número de entregas */
+				'labelEntriesMany' => __( '%d entregas', 'weekly-content-concatenator' ),
+				/* translators: %d: número de entregas publicadas */
+				'labelPublishedOne'  => __( '%d publicada', 'weekly-content-concatenator' ),
+				/* translators: %d: número de entregas publicadas */
+				'labelPublishedMany' => __( '%d publicadas', 'weekly-content-concatenator' ),
 				'labelSave'        => __( 'Guardar', 'weekly-content-concatenator' ),
-				'labelSaving'      => '...',
-				'labelSaved'       => '✓',
+				'labelSaving'      => __( 'Guardando…', 'weekly-content-concatenator' ),
+				'labelSaved'       => __( 'Guardada', 'weekly-content-concatenator' ),
 				'noticeSaved'      => __( 'Entrega guardada correctamente.', 'weekly-content-concatenator' ),
 				'noticeBumped'     => __( 'Entrega publicada: la fecha del post fue actualizada y el post volvió al inicio.', 'weekly-content-concatenator' ),
 				'errorEmpty'       => __( 'El título y el contenido no pueden estar vacíos.', 'weekly-content-concatenator' ),
@@ -261,8 +293,8 @@ class WCC_Admin {
 	 * @return array
 	 */
 	public function sanitize_entry( $entry ) {
-		$id = isset( $entry['id'] ) ? sanitize_text_field( wp_unslash( $entry['id'] ) ) : '';
-		if ( $id && ! preg_match( '/^[0-9a-f\-]{36}$/i', $id ) ) {
+		$id = isset( $entry['id'] ) ? sanitize_text_field( $entry['id'] ) : '';
+		if ( $id && ! self::is_valid_entry_id( $id ) ) {
 			$id = '';
 		}
 
@@ -284,6 +316,14 @@ class WCC_Admin {
 		if ( ! current_user_can( 'unfiltered_html' ) ) {
 			$content = wp_kses_post( $content );
 		}
+		if ( mb_strlen( $content ) > self::MAX_CONTENT_LENGTH ) {
+			$content = mb_substr( $content, 0, self::MAX_CONTENT_LENGTH );
+		}
+
+		$title = isset( $entry['title'] ) ? sanitize_text_field( $entry['title'] ) : '';
+		if ( mb_strlen( $title ) > self::MAX_TITLE_LENGTH ) {
+			$title = mb_substr( $title, 0, self::MAX_TITLE_LENGTH );
+		}
 
 		$status = isset( $entry['status'] ) ? sanitize_key( $entry['status'] ) : 'draft';
 		if ( ! in_array( $status, array( 'draft', 'scheduled', 'publish' ), true ) ) {
@@ -292,15 +332,25 @@ class WCC_Admin {
 
 		$sanitized = array(
 			'id'      => $id ? $id : wp_generate_uuid4(),
-			'title'   => isset( $entry['title'] ) ? sanitize_text_field( $entry['title'] ) : '',
+			'title'   => $title,
 			'date'    => $date,
 			'time'    => $time,
 			'status'  => $status,
 			'content' => $content,
 		);
 
-		if ( 'scheduled' === $sanitized['status'] && wcc_get_entry_timestamp( $sanitized ) <= time() ) {
+		$timestamp = wcc_get_entry_timestamp( $sanitized );
+
+		// Una entrega «programada» cuya hora ya pasó está publicada.
+		if ( 'scheduled' === $sanitized['status'] && $timestamp <= time() ) {
 			$sanitized['status'] = 'publish';
+		}
+
+		// Y una «publicada» con fecha y hora futuras es, en realidad, programada: si se guardara como
+		// publicada, el bump pondría al post una fecha futura y WordPress lo pasaría a «programado»,
+		// escondiéndolo del sitio hasta esa hora. Un minuto de tolerancia por el reloj del formulario.
+		if ( 'publish' === $sanitized['status'] && $timestamp > time() + MINUTE_IN_SECONDS ) {
+			$sanitized['status'] = 'scheduled';
 		}
 
 		return $sanitized;
@@ -318,6 +368,9 @@ class WCC_Admin {
 	 * @param int $timestamp Timestamp de la entrega.
 	 */
 	private static function maybe_bump_post_date( $post_id, $timestamp ) {
+		// Nunca una fecha futura: wp_insert_post pasaría el post a «programado» y desaparecería del sitio.
+		$timestamp = min( (int) $timestamp, time() );
+
 		self::$bumping_ids[] = $post_id;
 		wp_update_post(
 			array(
@@ -388,11 +441,13 @@ class WCC_Admin {
 		}
 
 		$order = isset( $_POST['wcc_order'] ) ? sanitize_key( wp_unslash( $_POST['wcc_order'] ) ) : 'desc';
+		$title = isset( $_POST['wcc_title'] ) ? sanitize_text_field( wp_unslash( $_POST['wcc_title'] ) ) : '';
 
 		update_post_meta( $post_id, '_wcc_entries', $entries );
 		update_post_meta( $post_id, '_wcc_enabled', isset( $_POST['wcc_enabled'] ) ? '1' : '0' );
 		update_post_meta( $post_id, '_wcc_hide_index', isset( $_POST['wcc_hide_index'] ) ? '1' : '0' );
 		update_post_meta( $post_id, '_wcc_order', 'asc' === $order ? 'asc' : 'desc' );
+		self::save_title_meta( $post_id, $title );
 
 		WCC_Cron::sync_scheduled_entries( $post_id, $entries, $old_entries );
 
@@ -404,9 +459,28 @@ class WCC_Admin {
 	}
 
 	/**
+	 * Guardar (o borrar si está vacío) el título personalizado de la sección.
+	 *
+	 * @param int    $post_id ID del post.
+	 * @param string $title   Título ya sanitizado.
+	 */
+	private static function save_title_meta( $post_id, $title ) {
+		$title = mb_substr( trim( (string) $title ), 0, 120 );
+		if ( '' === $title ) {
+			delete_post_meta( $post_id, '_wcc_title' );
+		} else {
+			update_post_meta( $post_id, '_wcc_title', $title );
+		}
+	}
+
+	/**
 	 * Callback para el guardado parcial e individual de una entrega mediante AJAX.
 	 */
 	public function ajax_save_single_entry() {
+		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'wcc_save_weekly_content' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Sesión expirada o no autorizada.', 'weekly-content-concatenator' ) ) );
+		}
+
 		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
 			wp_send_json_error( array( 'message' => __( 'No tienes permisos para editar este post.', 'weekly-content-concatenator' ) ) );
@@ -414,10 +488,6 @@ class WCC_Admin {
 
 		if ( in_array( $post_id, self::$bumping_ids, true ) ) {
 			wp_send_json_error( array( 'message' => __( 'Operación de actualización en curso.', 'weekly-content-concatenator' ) ) );
-		}
-
-		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'wcc_save_weekly_content' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Sesión expirada o no autorizada.', 'weekly-content-concatenator' ) ) );
 		}
 
 		$entry_data = isset( $_POST['entry'] ) && is_array( $_POST['entry'] ) ? wp_unslash( $_POST['entry'] ) : null;
@@ -449,15 +519,20 @@ class WCC_Admin {
 
 		$old_entries = $entries;
 
-		// Procesar eliminaciones pendientes enviadas por AJAX con validación de UUID
-		$active_ids = isset( $_POST['active_ids'] ) && is_array( $_POST['active_ids'] )
-			? array_filter(
-				array_map( 'sanitize_text_field', wp_unslash( $_POST['active_ids'] ) ),
-				fn( $id ) => preg_match( '/^[0-9a-f\-]{36}$/i', $id )
+		// Procesar eliminaciones pendientes enviadas por AJAX con validación de UUID.
+		// Se distingue "no se envió active_ids" (no filtrar) de "se envió vacío"
+		// (filtrar igual, ya que puede significar que se eliminaron todas las demás entregas).
+		$active_ids_sent = isset( $_POST['active_ids'] ) && is_array( $_POST['active_ids'] );
+		$active_ids      = $active_ids_sent
+			? array_values(
+				array_filter(
+					array_map( 'sanitize_text_field', wp_unslash( $_POST['active_ids'] ) ),
+					array( self::class, 'is_valid_entry_id' )
+				)
 			)
 			: array();
 
-		if ( ! empty( $active_ids ) ) {
+		if ( $active_ids_sent ) {
 			$filtered_entries = array();
 			foreach ( $entries as $existing_entry ) {
 				if ( isset( $existing_entry['id'] ) && ( in_array( $existing_entry['id'], $active_ids, true ) || $existing_entry['id'] === $sanitized_entry['id'] ) ) {
@@ -494,6 +569,9 @@ class WCC_Admin {
 			update_post_meta( $post_id, '_wcc_enabled', ! empty( $settings['enabled'] ) ? '1' : '0' );
 			update_post_meta( $post_id, '_wcc_hide_index', ! empty( $settings['hide_index'] ) ? '1' : '0' );
 			update_post_meta( $post_id, '_wcc_order', 'asc' === $order ? 'asc' : 'desc' );
+			if ( isset( $settings['title'] ) ) {
+				self::save_title_meta( $post_id, sanitize_text_field( $settings['title'] ) );
+			}
 		}
 
 		$has_new = false;
@@ -508,6 +586,9 @@ class WCC_Admin {
 		if ( $has_new && 'publish' === get_post_status( $post_id ) ) {
 			self::maybe_bump_post_date( $post_id, wcc_get_entry_timestamp( $sanitized_entry ) );
 			$bumped = true;
+		} else {
+			// Sin bump no hay wp_update_post, y los plugins de caché no se enteran del cambio.
+			wcc_purge_post_cache( $post_id );
 		}
 
 		wp_send_json_success(
@@ -541,8 +622,23 @@ class WCC_Admin {
 		register_setting( 'wcc_settings_group', 'wcc_styles', array( $this, 'sanitize_styles' ) );
 
 		add_settings_section(
+			'wcc_system_section',
+			__( 'Apariencia', 'weekly-content-concatenator' ),
+			array( $this, 'system_section_callback' ),
+			'wcc-settings'
+		);
+
+		add_settings_field(
+			'usar_sistema',
+			__( 'Sistema de diseño', 'weekly-content-concatenator' ),
+			array( $this, 'system_field_callback' ),
+			'wcc-settings',
+			'wcc_system_section'
+		);
+
+		add_settings_section(
 			'wcc_accordion_section',
-			__( 'Estilos del Acordeón (Entregas)', 'weekly-content-concatenator' ),
+			__( 'Colores personalizados de las entregas', 'weekly-content-concatenator' ),
 			array( $this, 'accordion_section_callback' ),
 			'wcc-settings'
 		);
@@ -568,7 +664,7 @@ class WCC_Admin {
 
 		add_settings_section(
 			'wcc_index_section',
-			__( 'Estilos del Índice de Entregas', 'weekly-content-concatenator' ),
+			__( 'Colores personalizados del índice', 'weekly-content-concatenator' ),
 			array( $this, 'index_section_callback' ),
 			'wcc-settings'
 		);
@@ -593,10 +689,29 @@ class WCC_Admin {
 	}
 
 	/**
+	 * Callback para descripción de la sección Apariencia.
+	 */
+	public function system_section_callback() {
+		echo '<p>' . esc_html__( 'Por defecto las entregas usan el sistema de diseño de Voz Católica (tipografía, colores y espaciado del sitio). Los colores personalizados de abajo solo se aplican si desactivas esta opción.', 'weekly-content-concatenator' ) . '</p>';
+	}
+
+	/**
+	 * Campo: usar el sistema de diseño.
+	 */
+	public function system_field_callback() {
+		?>
+		<label>
+			<input type="checkbox" name="wcc_styles[usar_sistema]" value="1" <?php checked( wcc_uses_design_system() ); ?>>
+			<?php esc_html_e( 'Usar el sistema de diseño de Voz Católica (recomendado)', 'weekly-content-concatenator' ); ?>
+		</label>
+		<?php
+	}
+
+	/**
 	 * Callback para descripción de sección acordeón.
 	 */
 	public function accordion_section_callback() {
-		echo '<p>' . esc_html__( 'Personaliza los colores de las cajas de las entregas.', 'weekly-content-concatenator' ) . '</p>';
+		echo '<p>' . esc_html__( 'Personaliza los colores de las cajas de las entregas. Deja un color vacío para usar el del sistema.', 'weekly-content-concatenator' ) . '</p>';
 	}
 
 	/**
@@ -632,6 +747,11 @@ class WCC_Admin {
 	 */
 	public function sanitize_styles( $input ) {
 		$output = array();
+		$input  = is_array( $input ) ? $input : array();
+
+		// La casilla desmarcada no viaja en el formulario: ausente = colores personalizados.
+		$output['usar_sistema'] = empty( $input['usar_sistema'] ) ? '0' : '1';
+
 		$fields = array(
 			'entry_header_bg',
 			'entry_header_color',
@@ -700,7 +820,7 @@ class WCC_Admin {
 			delete_transient( 'wcc_bump_notice_' . $user_id );
 			?>
 			<div class="notice notice-success is-dismissible">
-				<p><?php esc_html_e( '✓ Entrega publicada: la fecha del post fue actualizada y el post volvió al inicio.', 'weekly-content-concatenator' ); ?></p>
+				<p><?php esc_html_e( 'Entrega publicada: la fecha del post fue actualizada y el post volvió al inicio.', 'weekly-content-concatenator' ); ?></p>
 			</div>
 			<?php
 		}
